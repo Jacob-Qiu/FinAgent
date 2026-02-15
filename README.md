@@ -11,6 +11,7 @@
 - **MCP 服务接口**：提供标准化通信协议，便于前端或外部系统调用
 
 ## 项目结构
+```
 FinAgent/
 ├── mcp_server.py # MCP（Model Communication Protocol）服务入口
 ├── agent.py # 核心智能体逻辑：协调 RAG、工具调用与 LLM 生成
@@ -45,6 +46,7 @@ FinAgent/
 ├── config.yml # 配置文件（路径、模型参数等）
 ├── README-en.md
 └── README-cn.md
+```
 
 ## 快速开始（使用 uv）
 
