@@ -62,9 +62,11 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 
 ### 2. 克隆项目并创建虚拟环境
+
 ```bash
-git clone https://github.com/your-username/financial-agent.git
-cd financial-agent
+# 在父文件夹下克隆远程仓库
+git clone git@github.com:Jacob-Qiu/FinAgent.git
+cd FinAgent
 
 # 使用 uv 自动创建虚拟环境并安装依赖
 uv sync
@@ -73,30 +75,7 @@ uv sync 会：
 * 根据 .python-version 或系统默认 Python 创建 .venv
 * 从 pyproject.toml 安装所有依赖（包括 dev 依赖）
 
-## 3. 配置环境变量
-复制模板并填入你的密钥：
+### 3. 启动服务
 ```bash
-cp .env.example .env
-# 编辑 .env，填入 LLM API 密钥等
-```
-
-示例 .env.example 内容：
-```env
-LLM_API_KEY=your_openai_or_dashscope_key
-```
-
-## 4. 启动服务
-```bash
-# 激活虚拟环境（uv 默认使用 .venv）
-source .venv/bin/activate  # Linux/macOS
-# .\.venv\Scripts\activate  # Windows
-
-# 启动 MCP 服务
-python mcp_server.py
-```
-服务启动后，可通过 HTTP 请求交互：
-```bash
-curl -X POST http://localhost:8000/ask \
-  -H "Content-Type: application/json" \
-  -d '{"query": "宁德时代2023年毛利率是多少？"}'
+uv run python agent.py
 ```
