@@ -11,18 +11,23 @@
 - **MCP 服务接口**：提供标准化通信协议，便于前端或外部系统调用
 
 ## 项目结构
+```
 FinAgent/
 ├── mcp_server.py # MCP（Model Communication Protocol）服务入口
 ├── agent.py # 核心智能体逻辑：协调 RAG、工具调用与 LLM 生成
 │
 ├── tools/ # 工具模块
 │ ├── init.py
-│ ├── 
+│ ├── calculator.py
 │ └── 
 │
-├── utils.py/ # 功能函数
+├── utils/ # 功能函数
+│ ├── init.py
+│ ├── nodes.py # LangGraph节点
+│ ├── summary.py # 历史信息处理
+│ └── utils.py # 通用功能函数
 │
-├── constants.py/ # 全局常量
+├── constants.py/ # 全局常量（不一定做）
 │
 ├── exceptions.py/ # 自定义异常（不一定做）
 │
@@ -34,13 +39,14 @@ FinAgent/
 │ └── reports/ # 20家公司近10年研报（PDF/TXT）
 │
 ├── config/
-│ └── settings.yaml # 配置文件（路径、模型参数等）
+│ └── loader.py # 加载配置文件
 │
-├── pyproject.toml # 项目元数据与依赖声明（uv 兼容）
-├── .python-version # 指定 Python 版本（可选）
-├── .env # 环境变量（LLM API key 等，已加入 .gitignore）
+├── pyproject.toml # 项目元数据与依赖声明
+├── .python-version # 指定 Python 版本
+├── config.yml # 配置文件（路径、模型参数等）
 ├── README-en.md
 └── README-cn.md
+```
 
 ## 快速开始（使用 uv）
 
