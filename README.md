@@ -18,8 +18,9 @@ FinAgent/
 │
 ├── tools/ # 工具模块
 │ ├── init.py
+│ ├── akshare_search.py
 │ ├── calculator.py
-│ └── 
+│ └── get_current_time.py
 │
 ├── utils/ # 功能函数
 │ ├── init.py
