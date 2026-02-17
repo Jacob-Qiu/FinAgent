@@ -8,7 +8,7 @@ import pandas as pd
 from typing import Dict, List, Union, Optional
 
 
-def akshare_search(stock_code: str, data_type: str = "realtime") -> Union[pd.DataFrame, Dict]:
+def akshare_search(stock_code: str, data_type: str = "realtime", start_date: str = None, end_date: str = None) -> Union[pd.DataFrame, Dict]:
     """
     通过akshare获取股票数据
     
@@ -19,6 +19,8 @@ def akshare_search(stock_code: str, data_type: str = "realtime") -> Union[pd.Dat
                          - 美股：如 "AAPL" 或 "BABA"
         data_type (str): 数据类型，默认为"realtime"
                         可选值：realtime(实时行情)、history(历史数据)、info(基本信息)
+        start_date (str): 开始日期，格式为"YYYYMMDD"，仅在data_type="history"时有效
+        end_date (str): 结束日期，格式为"YYYYMMDD"，仅在data_type="history"时有效
     
     Returns:
         Union[pd.DataFrame, Dict]: 返回股票数据，格式根据data_type而定
@@ -34,7 +36,7 @@ def akshare_search(stock_code: str, data_type: str = "realtime") -> Union[pd.Dat
         if data_type == "realtime":
             return _get_realtime_data(normalized_code)
         elif data_type == "history":
-            return _get_history_data(normalized_code)
+            return _get_history_data(normalized_code, start_date=start_date, end_date=end_date)
         elif data_type == "info":
             return _get_stock_info(normalized_code)
         else:
@@ -101,18 +103,37 @@ def _get_realtime_data(stock_code: str) -> pd.DataFrame:
         raise Exception(f"获取实时行情失败: {str(e)}")
 
 
-def _get_history_data(stock_code: str, period: str = "daily") -> pd.DataFrame:
-    """获取历史数据"""
+def _get_history_data(stock_code: str, period: str = "daily", start_date: str = None, end_date: str = None) -> pd.DataFrame:
+    """获取历史数据
+    
+    Args:
+        stock_code (str): 股票代码
+        period (str): 数据周期，默认为"daily"
+        start_date (str): 开始日期，格式为"YYYYMMDD"，默认为None（最早数据）
+        end_date (str): 结束日期，格式为"YYYYMMDD"，默认为None（最新数据）
+    
+    Returns:
+        pd.DataFrame: 历史数据DataFrame
+    """
     try:
         if stock_code.startswith('sh') or stock_code.startswith('sz'):
             # A股历史数据
-            return ak.stock_zh_a_hist(symbol=stock_code[2:], period=period)
+            if start_date and end_date:
+                return ak.stock_zh_a_hist(symbol=stock_code[2:], period=period, start_date=start_date, end_date=end_date)
+            else:
+                return ak.stock_zh_a_hist(symbol=stock_code[2:], period=period)
         elif stock_code.startswith('hk'):
             # 港股历史数据
-            return ak.stock_hk_hist(symbol=stock_code[2:], period=period)
+            if start_date and end_date:
+                return ak.stock_hk_hist(symbol=stock_code[2:], period=period, start_date=start_date, end_date=end_date)
+            else:
+                return ak.stock_hk_hist(symbol=stock_code[2:], period=period)
         else:
             # 美股历史数据
-            return ak.stock_us_hist(symbol=stock_code.upper(), period=period)
+            if start_date and end_date:
+                return ak.stock_us_hist(symbol=stock_code.upper(), period=period, start_date=start_date, end_date=end_date)
+            else:
+                return ak.stock_us_hist(symbol=stock_code.upper(), period=period)
             
     except Exception as e:
         raise Exception(f"获取历史数据失败: {str(e)}")
@@ -148,6 +169,7 @@ def test_akshare_search():
     test_cases = [
         {"code": "000001", "type": "realtime", "desc": "平安银行A股实时行情"},
         {"code": "sh600000", "type": "realtime", "desc": "浦发银行A股实时行情"},
+        {"code": "000001", "type": "history", "start_date": "20260210", "end_date": "20260213", "desc": "平安银行A股2026年2月10-13日历史数据"},
         # {"code": "00700", "type": "realtime", "desc": "腾讯控股港股实时行情"},  # 可选测试
         # {"code": "AAPL", "type": "realtime", "desc": "苹果公司美股实时行情"},   # 可选测试
     ]
@@ -159,7 +181,10 @@ def test_akshare_search():
         print("-" * 40)
         
         try:
-            result = akshare_search(case['code'], case['type'])
+            if 'start_date' in case and 'end_date' in case:
+                result = akshare_search(case['code'], case['type'], case['start_date'], case['end_date'])
+            else:
+                result = akshare_search(case['code'], case['type'])
             if isinstance(result, pd.DataFrame):
                 print("返回数据类型: DataFrame")
                 print(f"数据形状: {result.shape}")

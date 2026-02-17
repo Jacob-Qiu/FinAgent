@@ -4,7 +4,8 @@
 """
 
 from .calculator import add
-from .akshare_search import akshare_search, test_akshare_search
-from .get_current_time import get_current_time, test_get_current_time
+from .akshare_search import akshare_search
+from .get_current_time import get_current_time
+from .generate_report import generate_markdown_report
 
-__all__ = ['add', 'akshare_search', 'get_current_time']
+__all__ = ['add', 'akshare_search', 'get_current_time', 'generate_markdown_report']

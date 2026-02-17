@@ -62,7 +62,12 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
         {user_input}
         
         ## tool_candidates: 
-        ["add", "akshare_search", "get_current_time"]
+        [
+            "add", 
+            "akshare_search", 
+            "get_current_time", 
+            "generate_markdown_report"
+        ]
     """
 
     # 格式化提示文本
@@ -120,6 +125,7 @@ def execute_node(state: AgentState) -> Dict[str, Any]:
 
     # 如果计划中指定了工具，则调用大模型分析参数
     if tool_name and tool_name != "None":
+        
         # todo 构造参数分析提示，补充新的工具，工具的参数名参考mcp_server.py
         prompt_template = """
             请分析以下任务需要调用工具"{tool_name}"时的具体参数。
@@ -128,10 +134,44 @@ def execute_node(state: AgentState) -> Dict[str, Any]:
             用户原始需求: {user_input}
             
             请根据任务描述和原始需求，分析出调用该工具所需的参数。
-            工具参数限制：
-                - add: {{"add_param": [add1(int), add2:(int)]}}
-                - akshare_search: {{"akshare_search_param": [stock_code(str), data_type(str)]}}
-                - get_current_time: {{"get_current_time_param": []}}
+            工具参数定义：
+            {{
+                "add": {{
+                    "description": "加法计算工具",
+                    "parameters": {{
+                        "add1": {{"type": "int", "description": "第一个加数"}},
+                        "add2": {{"type": "int", "description": "第二个加数"}}
+                    }}
+                }},
+                "akshare_search": {{
+                    "description": "股票数据查询工具",
+                    "parameters": {{
+                        "stock_code": {{"type": "str", "description": "股票代码"}},
+                        "data_type": {{
+                            "type": "str",
+                            "description": "数据类型",
+                            "enum": [
+                                {{"value": "realtime", "description": "实时行情（用户查询当前或最新行情时使用）"}},
+                                {{"value": "history", "description": "历史数据（用户查询指定日期范围的历史行情时使用）"}},
+                                {{"value": "info", "description": "基本信息（用户查询股票基本信息时使用）"}}
+                            ]
+                        }},
+                        "start_date": {{"type": "str", "description": "开始日期（可选，格式: YYYYMMDD）"}},
+                        "end_date": {{"type": "str", "description": "结束日期（可选，格式: YYYYMMDD）"}}
+                    }}
+                }},
+                "get_current_time": {{
+                    "description": "获取当前时间工具",
+                    "parameters": {{}}
+                }},
+                "generate_markdown_report": {{
+                    "description": "生成Markdown报告工具",
+                    "parameters": {{
+                        "user_requirement": {{"type": "str", "description": "用户需求"}},
+                        "report_content": {{"type": "str", "description": "报告内容"}}
+                    }}
+                }}
+            }}
             
             回答格式：
             {{
@@ -154,9 +194,17 @@ def execute_node(state: AgentState) -> Dict[str, Any]:
             try:
                 result = call_mcp_tool(tool_name, tool_args)
             except Exception as e:
-                result = f"{tool_name}工具调用失败"
+                import traceback
+                error_detail = traceback.format_exc()
+                result = f"{tool_name}工具调用失败: {str(e)}"
             
+        except json.JSONDecodeError as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            result = f"JSON解析失败: {str(e)}，原始响应: {param_analysis}"
         except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
             result = f"参数分析失败: {str(e)}，原始响应: {param_analysis}"
     else:
         # 对于不需要工具的任务，直接执行
@@ -196,10 +244,15 @@ def replan_node(state: AgentState) -> Dict[str, Any]:
         当前执行进度: {current_step}/{total_steps}
         已完成的执行结果: {execution_results}
         
+        重要提示：
+        - 如果还有未执行的步骤（当前步骤 < 总步骤数），必须选择"1"继续执行
+        - 只有当所有步骤都执行完毕后，才能选择"2"生成最终答案
+        - 如果当前步骤执行失败，才选择"3"重新规划
+        
         请选择最合适的选项：
-        1. 继续执行下一个步骤
-        2. 生成最终答案（如果已经满足用户需求）
-        3. 重新规划计划（如果需要调整策略）
+        1. 继续执行下一个步骤（当还有未执行的步骤时）
+        2. 生成最终答案（只有当所有步骤都执行完毕后）
+        3. 重新规划计划（如果当前步骤执行失败）
         
         请只回答数字1、2或3。
     """
