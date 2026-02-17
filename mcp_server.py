@@ -9,6 +9,7 @@ from typing import Dict, Any
 from tools.akshare_search import akshare_search
 from tools.calculator import add
 from tools.get_current_time import get_current_time
+from tools.generate_report import generate_markdown_report
 
 
 class MCPServer:
@@ -22,7 +23,8 @@ class MCPServer:
         self.tools = {
             "add": self.add,
             "akshare_search": self.akshare_search,
-            "get_current_time": self.get_current_time
+            "get_current_time": self.get_current_time,
+            "generate_markdown_report": self.generate_markdown_report
         }
 
     # ===== Tool definitions =====
@@ -31,8 +33,9 @@ class MCPServer:
         """
         Tool: 相加
         """
-        adds = args["add_param"]
-        data = add(adds[0], adds[1])
+        add0 = args["add1"]
+        add1 = args["add2"]
+        data = add(add0, add1)
         return {
             "type": "tool_result",
             "tool": "add",
@@ -42,7 +45,15 @@ class MCPServer:
     def akshare_search(self, args: Dict[str, Any]) -> Dict[str, Any]:
         stock_code = args["stock_code"]
         data_type = args["data_type"]
-        data = akshare_search(stock_code, data_type)
+        
+        # 处理可选参数
+        start_date = args.get("start_date")
+        end_date = args.get("end_date")
+        
+        if start_date and end_date:
+            data = akshare_search(stock_code, data_type, start_date, end_date)
+        else:
+            data = akshare_search(stock_code, data_type)
         return {
             "type": "tool_result",
             "tool": "akshare_search",
@@ -57,6 +68,15 @@ class MCPServer:
             "content": data
         }
 
+    def generate_markdown_report(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        user_requirement = args["user_requirement"]
+        report_content = args["report_content"]
+        data = generate_markdown_report(user_requirement, report_content, save_to_file=True)
+        return {
+            "type": "tool_result",
+            "tool": "generate_markdown_report",
+            "content": data
+        }
 
     # ===== MCP dispatch =====
 

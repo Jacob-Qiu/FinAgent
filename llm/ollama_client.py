@@ -10,7 +10,7 @@ from config.loader import load_config
 
 
 
-def ollama_chat(messages: list[dict], stream: bool = False, timeout: int = 60):
+def ollama_chat(messages: list[dict], stream: bool = False, timeout: int = 600):
     config = load_config()
     ollama_base_url = config["ollama"]["base_url"]
     model_name = config["ollama"]["model"]
