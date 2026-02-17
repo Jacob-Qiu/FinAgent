@@ -72,6 +72,28 @@ def generate_text(prompt: str) -> str:
 def call_mcp_tool(tool_name: str, args: Dict[str, Any]) -> str:
     """调用MCP工具并返回结果"""
     try:
+        # 调试信息
+        print(f"调试: 调用工具 {tool_name}，参数: {args}")
+        
+        # 参数验证
+        if tool_name == "add":
+            required_params = ["add1", "add2"]
+            for param in required_params:
+                if param not in args:
+                    return f"参数错误: add工具缺少{param}参数，当前参数: {list(args.keys())}"
+            if not isinstance(args["add1"], (int, float)) or not isinstance(args["add2"], (int, float)):
+                return f"参数错误: add1和add2必须是数字类型，当前类型: {type(args['add1'])}, {type(args['add2'])}"
+        elif tool_name == "akshare_search":
+            required_params = ["stock_code", "data_type"]
+            for param in required_params:
+                if param not in args:
+                    return f"参数错误: akshare_search工具缺少必需参数 {param}，当前参数: {list(args.keys())}"
+        elif tool_name == "generate_markdown_report":
+            required_params = ["user_requirement", "report_content"]
+            for param in required_params:
+                if param not in args:
+                    return f"参数错误: generate_markdown_report工具缺少必需参数 {param}，当前参数: {list(args.keys())}"
+        
         result = mcp_server.handle_tool_call(tool_name, args)
         return f"工具执行结果: {result['content']}"
     except Exception as e:
