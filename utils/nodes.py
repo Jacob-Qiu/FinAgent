@@ -29,7 +29,8 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
     """生成执行计划"""
     # 动态导入获取最新的history和summary
     from .summary import history, summary
-    
+
+    # todo 补充tool_candidates
     prompt_template = """
         ## 要求
         基于用户需求和对话上下文，生成一个详细的执行计划，每个步骤包含：
@@ -61,7 +62,7 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
         {user_input}
         
         ## tool_candidates: 
-        ["add"]
+        ["add", "akshare_search", "get_current_time"]
     """
 
     # 格式化提示文本
@@ -128,7 +129,9 @@ def execute_node(state: AgentState) -> Dict[str, Any]:
             
             请根据任务描述和原始需求，分析出调用该工具所需的参数。
             工具参数限制：
-                - add: {{"add_param": List[int]}}
+                - add: {{"add_param": [add1(int), add2:(int)]}}
+                - akshare_search: {{"akshare_search_param": [stock_code(str), data_type(str)]}}
+                - get_current_time: {{"get_current_time_param": []}}
             
             回答格式：
             {{
@@ -146,20 +149,12 @@ def execute_node(state: AgentState) -> Dict[str, Any]:
         try:
             import json
             analysis_result = json.loads(param_analysis)
-
-            # tool_args: {"参数名1": "参数值1"， "参数名2": "参数值2"}
             tool_args = analysis_result.get("参数", {})
-            
-            # todo 验证参数格式，有点冗余
-            if tool_name == "add":
-                if "add_param" not in tool_args or not isinstance(tool_args["add_param"], List) or len(tool_args["add_param"]) != 2:
-                    result = f"参数格式错误: add工具需要包含两个数字的adds的数组，当前参数: {tool_args}"
-                else:
-                    # 调用相应工具
-                    result = call_mcp_tool(tool_name, tool_args)
-            else:
-                # 其他工具直接调用
+
+            try:
                 result = call_mcp_tool(tool_name, tool_args)
+            except Exception as e:
+                result = f"{tool_name}工具调用失败"
             
         except Exception as e:
             result = f"参数分析失败: {str(e)}，原始响应: {param_analysis}"
@@ -227,14 +222,14 @@ def replan_node(state: AgentState) -> Dict[str, Any]:
     if decision.startswith("2") or state.current_step >= len(state.current_plan):
         # 生成最终答案
         answer_prompt = """
-        基于以下执行结果和用户原始需求，生成一个简洁明了的最终答案。
-        
-        用户原始需求: {user_input}
-        执行结果: {execution_results}
-        
-        请根据执行结果，直接回答用户的问题。答案应该是具体的、有针对性的。
-        
-        只需输出最终答案，不需要解释过程。
+            基于以下执行结果和用户原始需求，生成一个简洁明了的最终答案。
+            
+            用户原始需求: {user_input}
+            执行结果: {execution_results}
+            
+            请根据执行结果，直接回答用户的问题。答案应该是具体的、有针对性的。
+            
+            只需输出最终答案，不需要解释过程。
         """
         
         answer_text = answer_prompt.format(
