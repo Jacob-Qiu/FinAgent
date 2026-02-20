@@ -1,7 +1,7 @@
 # FinAgent
 
-<p align="right">
-  <a href="README-en.md">English</a> | 中文
+<p align="left">
+  中文 | <a href="README-en.md">English</a>
 </p>
 
 ## 简介
