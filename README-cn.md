@@ -20,31 +20,33 @@ FinAgent/
 │ ├── init.py
 │ ├── akshare_search.py
 │ ├── calculator.py
-│ └── get_current_time.py
+│ ├── generate_report.py
+│ ├── get_current_time.py
+│ └── ...
 │
 ├── utils/ # 功能函数
 │ ├── init.py
+│ ├── config_loader.py # 加载配置文件
 │ ├── nodes.py # LangGraph节点
-│ ├── summary.py # 历史信息处理
-│ └── utils.py # 通用功能函数
+│ ├── summary.py # 历史消息处理
+│ ├── utils.py # 其他
+│ └── ...
 │
-├── constants.py/ # 全局常量（不一定做）
+├── constants.py/ # 全局常量（TBC）
 │
-├── exceptions.py/ # 自定义异常（不一定做）
+├── exceptions.py/ # 自定义异常（TBC）
 │
-├── rag/ # RAG 组件
+├── rag/ # RAG组件
 │ ├── vector_store.py # 向量数据库管理（FAISS / Chroma）
 │ └── retriever.py # 检索逻辑
 │
 ├── data/
-│ └── reports/ # 20家公司近10年研报（PDF/TXT）
+│ ├── reports/ # 20家公司近10年研报（PDF/TXT）
+│ └── ...
 │
-├── config/
-│ └── loader.py # 加载配置文件
-│
-├── pyproject.toml # 项目元数据与依赖声明
-├── .python-version # 指定 Python 版本
-├── config.yml # 配置文件（路径、模型参数等）
+├── pyproject.toml
+├── .python-version
+├── config.yml # Configuration file
 ├── README-en.md
 └── README-cn.md
 ```
