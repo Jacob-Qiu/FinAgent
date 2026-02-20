@@ -5,7 +5,7 @@
 
 import requests
 
-from config.loader import load_config
+from utils.config import load_config
 
 
 

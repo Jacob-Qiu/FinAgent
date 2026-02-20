@@ -9,6 +9,7 @@ history = []  # 存储每一步的对话内容
 summary = ""  # 当前对话的摘要
 
 def update_summary(model: str):
+    # todo 设计长短期记忆
     """
     更新对话摘要。
 
