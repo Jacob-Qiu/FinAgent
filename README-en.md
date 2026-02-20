@@ -1,7 +1,7 @@
 # FinAgent
 
-<p align="right">
-  English | <a href="README.md">中文</a>
+<p align="left">
+  <a href="README.md">中文</a> | English
 </p>
 
 ## Introduction
@@ -15,7 +15,7 @@
 - **实时数据接入**：通过 AKShare 工具动态获取股票行情、财务数据等
 - **MCP 服务接口**：提供标准化通信协议，便于前端或外部系统调用
 
-## 项目结构
+## Structure
 ```
 FinAgent/
 ├── mcp_server.py # MCP Server
@@ -56,7 +56,7 @@ FinAgent/
 └── README-cn.md
 ```
 
-## 快速开始（使用 uv）
+## Quick Start (uv)
 
 ### 1. 安装 uv（若尚未安装）
 
