@@ -1,5 +1,10 @@
 # FinAgent
 
+<p align="right">
+  <a href="README-en.md">English</a> | 中文
+</p>
+
+## 简介
 【待补充简介】
 
 ## 功能亮点

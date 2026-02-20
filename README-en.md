@@ -1,8 +1,13 @@
 # FinAgent
 
+<p align="right">
+  English | <a href="README.md">中文</a>
+</p>
+
+## Introduction
 【待补充简介】
 
-## 功能亮点
+## Function
 
 - **问答系统**：支持自然语言提问，如“腾讯近五年营收趋势如何？”
 - **报告生成**：可生成结构化公司分析报告（含财务指标、行业对比等）
