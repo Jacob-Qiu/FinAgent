@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "akshare==1.18.25",
+    "chromadb==1.5.1",
     "httpx==0.28.1",
     "langgraph==1.0.8",
     "mcp==1.26.0",
@@ -13,4 +14,5 @@ dependencies = [
     "pydantic-settings==2.12.0",
     "python-dotenv==1.2.1",
     "pyyaml==6.0.3",
+    "sentence-transformers==3.2.1",
 ]
