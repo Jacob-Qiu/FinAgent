@@ -5,7 +5,7 @@
 from typing import List, Dict, Any
 import json
 
-from config.loader import load_config
+from utils.config import load_config
 from llm.ollama_client import ollama_chat
 from mcp_server import MCPServer
 
