@@ -15,4 +15,12 @@ dependencies = [
     "python-dotenv==1.2.1",
     "pyyaml==6.0.3",
     "sentence-transformers==3.2.1",
+    "pypdf==4.2.0",
+    "sentence-transformers==2.7.0",
+    "tiktoken==0.7.0",
+    "chromadb==0.5.3",
 ]
+
+[tool.setuptools.packages.find]
+include = ["llm", "tools", "utils"]
+

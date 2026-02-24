@@ -1,3 +1,5 @@
-ollama:
-  base_url: http://localhost:11434/api/chat  # URL 只指向一个本地推理服务，模型是通过 model 字段在请求体里选的
-  model: qwen3  # 在这里换自己的模型
+llm_provider: gemini  # options: ollama, gemini
+
+gemini:
+  api_key: AIzaSyDhasCuc6clAAvJpKGWvsBjBLUozW6hIqU
+  model: gemini-2.5-flash
