@@ -33,7 +33,7 @@ FinAgent/
 │ ├── init.py
 │ ├── config_loader.py # 加载配置文件
 │ ├── nodes.py # LangGraph节点
-│ ├── summary.py # 历史消息处理
+│ ├── memory.py # 历史消息处理
 │ ├── utils.py # 其他
 │ └── ...
 │

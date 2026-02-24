@@ -9,9 +9,6 @@ from dataclasses import dataclass
 from click import Tuple
 
 from .utils import generate_text, call_mcp_tool
-# 在具体函数中动态导入，确保获取最新值
-# from .summary import history, summary
-
 
 # 定义状态结构
 @dataclass
@@ -28,7 +25,7 @@ class AgentState:
 def plan_node(state: AgentState) -> Dict[str, Any]:
     """生成执行计划"""
     # 动态导入获取最新的history和summary
-    from .summary import history, summary
+    from .memory import history, summary
 
     # todo 补充tool_candidates
     prompt_template = """
@@ -231,7 +228,7 @@ def execute_node(state: AgentState) -> Dict[str, Any]:
 def replan_node(state: AgentState) -> Dict[str, Any]:
     """根据执行结果重新生成计划或生成最终答案（每步执行后检查）"""
     # 动态导入获取最新的history和summary
-    from .summary import history, summary
+    from .memory import history, summary
     
     # 准备对话历史和摘要
     history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history[-5:]])
