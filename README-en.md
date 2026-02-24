@@ -33,7 +33,7 @@ FinAgent/
 │ ├── init.py
 │ ├── config_loader.py # Load config file
 │ ├── nodes.py # LangGraph nodes
-│ ├── summary.py # History information process
+│ ├── memory.py # History information process
 │ ├── utils.py # General utility functions
 │ └── ...
 │

@@ -9,7 +9,10 @@ import tkinter as tk
 from tkinter import messagebox, scrolledtext
 
 from utils.nodes import AgentState, plan_node, execute_node, replan_node
-from utils.summary import history, summary, update_summary
+from utils.memory import (
+    history, summary, update_summary,
+    add_message, transfer_memory, get_context
+)
 
 
 # 主Agent类
@@ -52,8 +55,12 @@ class PlanExecuteAgent:
     
     def run(self, user_input: str) -> Dict[str, Any]:
         """运行Agent处理用户输入"""
-        # 将用户输入添加到历史记录
-        history.append({"role": "user", "content": user_input})
+        # 将用户输入添加到记忆系统
+        add_message("user", user_input)
+        
+        # 获取相关上下文
+        context = get_context(user_input)
+        print(f"获取到的上下文:\n{context[:200]}...")
         
         initial_state = AgentState(
             user_input=user_input,
@@ -71,11 +78,14 @@ class PlanExecuteAgent:
         # 执行图并输出过程信息
         result = self._execute_with_console_output(initial_state)
         
-        # 将AI回复添加到历史记录
+        # 将AI回复添加到记忆系统
+        # todo 现在设计的是只要是final answer就更新摘要和长期记忆
         if result.get('final_answer'):
-            history.append({"role": "assistant", "content": result['final_answer']})
+            add_message("assistant", result['final_answer'])
             # 更新摘要
             update_summary("PlanExecuteAgent")
+            # 转移到长期记忆
+            transfer_memory()
         
         return result
     
