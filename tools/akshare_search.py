@@ -1,161 +1,240 @@
 """
-创建日期：2026年02月17日
-介绍：股票数据搜索工具，基于akshare获取实时股票信息
+创建日期：2026年02月24日
+介绍：股票数据搜索工具，基于akshare获取实时股票信息，支持智能识别市场和代码
 """
 
 import akshare as ak
 import pandas as pd
 from typing import Dict, List, Union, Optional
+import sys
+import os
 
+# 确保可以从 utils 导入
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from utils.utils import generate_text
+except ImportError:
+    # 如果作为脚本直接运行，可能需要调整路径
+    pass
+
+def _resolve_stock_identity(query: str) -> str:
+    """
+    使用LLM识别输入的股票身份
+    返回格式：Market|Ticker|Name
+    示例：US|NVDA|英伟达
+    """
+    prompt = f"""
+    你是一个专业的金融数据专家。请识别输入项 query 指向的上市公司。
+
+    输入 query: {query}
+
+    请严格按照以下格式返回结果：
+    市场|标准Ticker|中文简称
+
+    市场代码说明：
+    - A: A股 (如 600519)
+    - US: 美股 (如 NVDA, AAPL)
+    - HK: 港股 (如 00700)
+
+    示例：
+    - “英伟达” -> US|NVDA|英伟达
+    - “NVDA” -> US|NVDA|英伟达
+    - “腾讯” -> HK|00700|腾讯控股
+    - “00700” -> HK|00700|腾讯控股
+    - “中科软” -> A|603927|中科软
+    - “603927” -> A|603927|中科软
+    - “贵州茅台” -> A|600519|贵州茅台
+
+    如果无法识别或不确定，请返回 UNKNOWN|NONE|NONE。
+    只返回结果字符串，不要包含任何其他内容。
+    """
+    
+    try:
+        response = generate_text(prompt).strip()
+        # 清理可能存在的 markdown 标记
+        response = response.replace('`', '').strip()
+        # 提取第一行有效内容
+        lines = response.split('\n')
+        for line in lines:
+            if '|' in line:
+                return line.strip()
+        return "UNKNOWN|NONE|NONE"
+    except Exception as e:
+        print(f"LLM识别失败: {e}")
+        return "UNKNOWN|NONE|NONE"
 
 def akshare_search(stock_code: str, data_type: str = "realtime", start_date: str = None, end_date: str = None) -> Union[pd.DataFrame, Dict]:
     """
-    通过akshare获取股票数据
+    通过akshare获取股票数据，支持智能识别A股/港股/美股
     
     Args:
-        stock_code (str): 股票代码，支持多种格式：
-                         - A股：如 "000001" 或 "sh600000"
-                         - 港股：如 "00700" 或 "hk00700"
-                         - 美股：如 "AAPL" 或 "BABA"
+        stock_code (str): 股票代码或名称，如 "600519", "NVDA", "腾讯", "中科软"
         data_type (str): 数据类型，默认为"realtime"
                         可选值：realtime(实时行情)、history(历史数据)、info(基本信息)
-        start_date (str): 开始日期，格式为"YYYYMMDD"，仅在data_type="history"时有效
-        end_date (str): 结束日期，格式为"YYYYMMDD"，仅在data_type="history"时有效
+        start_date (str): 开始日期，格式为"YYYYMMDD"
+        end_date (str): 结束日期，格式为"YYYYMMDD"
     
     Returns:
-        Union[pd.DataFrame, Dict]: 返回股票数据，格式根据data_type而定
-        
-    Raises:
-        ValueError: 当股票代码无效或不支持时抛出
-        Exception: 当akshare接口调用失败时抛出
+        Union[pd.DataFrame, Dict]: 返回股票数据
     """
     try:
-        # 标准化股票代码格式
-        normalized_code = _normalize_stock_code(stock_code)
+        stock_code = str(stock_code).strip()
+        if not stock_code:
+            raise ValueError("股票代码不能为空")
+
+        # 支持多只股票查询（逗号分隔）
+        if "," in stock_code or "，" in stock_code:
+            codes = [c.strip() for c in stock_code.replace("，", ",").split(",") if c.strip()]
+            multi_results = {}
+            for code in codes:
+                try:
+                    # 递归调用单只股票查询
+                    res = akshare_search(code, data_type, start_date, end_date)
+                    if isinstance(res, pd.DataFrame):
+                        # DataFrame 转字典以便合并
+                        multi_results[code] = res.to_dict(orient="records")
+                    else:
+                        multi_results[code] = res
+                except Exception as e:
+                    multi_results[code] = f"查询失败: {str(e)}"
+            return multi_results
+
+        market = None
+        ticker = None
+        name = None
         
-        if data_type == "realtime":
-            return _get_realtime_data(normalized_code)
-        elif data_type == "history":
-            return _get_history_data(normalized_code, start_date=start_date, end_date=end_date)
-        elif data_type == "info":
-            return _get_stock_info(normalized_code)
+        # 1. Input Pre-check
+        # 6位纯数字 -> A股
+        if stock_code.isdigit() and len(stock_code) == 6:
+            market = "A"
+            ticker = stock_code
+            name = stock_code
+        # .US 后缀 -> 美股
+        elif stock_code.upper().endswith(".US"):
+            market = "US"
+            ticker = stock_code.upper().replace(".US", "")
+            name = ticker
+        # .HK 后缀 -> 港股
+        elif stock_code.upper().endswith(".HK"):
+            market = "HK"
+            ticker = stock_code.upper().replace(".HK", "")
+            name = ticker
+        # 包含中文或纯字母 -> LLM Routing
         else:
-            raise ValueError(f"不支持的数据类型: {data_type}")
+            print(f"调用LLM识别股票身份: {stock_code}")
+            identity = _resolve_stock_identity(stock_code)
+            print(f"LLM识别结果: {identity}")
             
+            parts = identity.split('|')
+            if len(parts) >= 2 and parts[0] in ["A", "US", "HK"]:
+                market = parts[0]
+                ticker = parts[1]
+                name = parts[2] if len(parts) > 2 else ticker
+            else:
+                # Fallback: 如果是纯字母，尝试作为美股处理，或者是A股拼音？
+                # 这里保守起见，如果无法识别则报错
+                raise ValueError(f"无法识别该公司的股票代码: {stock_code}，请尝试提供准确的股票代码或标准名称。")
+
+        # 3. Market Execution
+        if market == "A":
+            return _handle_a_share(ticker, data_type, start_date, end_date)
+        elif market == "US":
+            return _handle_us_share(ticker, data_type, start_date, end_date)
+        elif market == "HK":
+            return _handle_hk_share(ticker, data_type, start_date, end_date)
+        else:
+             raise ValueError(f"不支持的市场类型: {market}")
+             
     except Exception as e:
-        raise Exception(f"获取股票数据失败: {str(e)}")
+        raise Exception(f"获取股票数据失败 ({stock_code}): {str(e)}")
 
-
-def _normalize_stock_code(stock_code: str) -> str:
-    """标准化股票代码格式"""
-    code = stock_code.strip().upper()
+def _handle_a_share(ticker: str, data_type: str, start_date: str = None, end_date: str = None):
+    """处理A股查询"""
+    # 简单的A股代码标准化
+    # AKShare 接口通常接受纯数字代码，或者 sh/sz 前缀
+    # stock_zh_a_spot_em 返回的代码是纯数字
     
-    # 处理A股代码
-    if code.startswith(('SH', 'SZ')):
-        return code.lower()
-    elif code.isdigit() and len(code) == 6:
-        # 自动识别上海或深圳交易所
-        if code.startswith(('6', '5')):
-            return f"sh{code}"
+    if data_type == "realtime":
+        df = ak.stock_zh_a_spot_em()
+        # 精确匹配代码
+        result = df[df['代码'] == ticker]
+        if result.empty:
+             raise ValueError(f"未找到A股代码: {ticker}")
+        return result
+    elif data_type == "history":
+        if start_date and end_date:
+            return ak.stock_zh_a_hist(symbol=ticker, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
         else:
-            return f"sz{code}"
-    
-    # 港股代码处理
-    elif code.startswith('HK') or (code.isdigit() and len(code) == 5):
-        if code.startswith('HK'):
-            return code.lower()
-        else:
-            return f"hk{code}"
-    
-    # 美股代码保持原样
+            return ak.stock_zh_a_hist(symbol=ticker, period="daily", adjust="qfq")
+    elif data_type == "info":
+        df = ak.stock_individual_info_em(symbol=ticker)
+        return df.set_index('item')['value'].to_dict()
     else:
-        return code.lower()
+        raise ValueError(f"不支持的数据类型: {data_type}")
 
-
-def _get_realtime_data(stock_code: str) -> pd.DataFrame:
-    """获取实时行情数据"""
-    try:
-        # 判断市场类型
-        if stock_code.startswith('sh') or stock_code.startswith('sz'):
-            # A股实时行情
-            df = ak.stock_zh_a_spot_em()
-            # 筛选指定股票
-            result = df[df['代码'] == stock_code[2:]]
-            if result.empty:
-                raise ValueError(f"未找到股票代码: {stock_code}")
-            return result
-        elif stock_code.startswith('hk'):
-            # 港股实时行情
-            df = ak.stock_hk_spot_em()
-            result = df[df['代码'] == stock_code[2:]]
-            if result.empty:
-                raise ValueError(f"未找到港股代码: {stock_code}")
-            return result
+def _handle_hk_share(ticker: str, data_type: str, start_date: str = None, end_date: str = None):
+    """处理港股查询"""
+    # 确保5位代码
+    if ticker.isdigit() and len(ticker) < 5:
+        ticker = ticker.zfill(5)
+        
+    if data_type == "realtime":
+        df = ak.stock_hk_spot_em()
+        result = df[df['代码'] == ticker]
+        if result.empty:
+            raise ValueError(f"未找到港股代码: {ticker}")
+        return result
+    elif data_type == "history":
+        if start_date and end_date:
+            return ak.stock_hk_hist(symbol=ticker, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
         else:
-            # 美股实时行情
-            df = ak.stock_us_spot_em()
-            result = df[df['代码'].str.upper() == stock_code.upper()]
-            if result.empty:
-                raise ValueError(f"未找到美股代码: {stock_code}")
-            return result
-            
-    except Exception as e:
-        raise Exception(f"获取实时行情失败: {str(e)}")
+            return ak.stock_hk_hist(symbol=ticker, period="daily", adjust="qfq")
+    elif data_type == "info":
+         return {"code": ticker, "market": "HK", "note": "港股基础信息接口待完善"}
+    else:
+        raise ValueError(f"不支持的数据类型: {data_type}")
 
-
-def _get_history_data(stock_code: str, period: str = "daily", start_date: str = None, end_date: str = None) -> pd.DataFrame:
-    """获取历史数据
+def _handle_us_share(ticker: str, data_type: str, start_date: str = None, end_date: str = None):
+    """处理美股查询"""
+    ticker = ticker.upper()
     
-    Args:
-        stock_code (str): 股票代码
-        period (str): 数据周期，默认为"daily"
-        start_date (str): 开始日期，格式为"YYYYMMDD"，默认为None（最早数据）
-        end_date (str): 结束日期，格式为"YYYYMMDD"，默认为None（最新数据）
+    # 优先解析带前缀的完整代码（AKShare美股接口通常需要前缀，如 105.NVDA）
+    full_symbol = ticker
     
-    Returns:
-        pd.DataFrame: 历史数据DataFrame
-    """
+    # 尝试通过实时接口获取完整代码
     try:
-        if stock_code.startswith('sh') or stock_code.startswith('sz'):
-            # A股历史数据
-            if start_date and end_date:
-                return ak.stock_zh_a_hist(symbol=stock_code[2:], period=period, start_date=start_date, end_date=end_date)
-            else:
-                return ak.stock_zh_a_hist(symbol=stock_code[2:], period=period)
-        elif stock_code.startswith('hk'):
-            # 港股历史数据
-            if start_date and end_date:
-                return ak.stock_hk_hist(symbol=stock_code[2:], period=period, start_date=start_date, end_date=end_date)
-            else:
-                return ak.stock_hk_hist(symbol=stock_code[2:], period=period)
-        else:
-            # 美股历史数据
-            if start_date and end_date:
-                return ak.stock_us_hist(symbol=stock_code.upper(), period=period, start_date=start_date, end_date=end_date)
-            else:
-                return ak.stock_us_hist(symbol=stock_code.upper(), period=period)
+        df = ak.stock_us_spot_em()
+        # 匹配 symbol 后缀 (例如 105.NVDA -> NVDA)
+        matches = [code for code in df['代码'] if code.endswith(f".{ticker}")]
+        if not matches:
+             # 尝试直接匹配
+            matches = [code for code in df['代码'] if code == ticker]
             
+        if matches:
+            full_symbol = matches[0]
+        elif data_type == "realtime":
+            # 如果是实时查询且找不到，直接报错
+             raise ValueError(f"未找到美股代码: {ticker}")
     except Exception as e:
-        raise Exception(f"获取历史数据失败: {str(e)}")
+        if data_type == "realtime":
+            raise e
+        # 历史查询时如果实时接口失败，尝试继续使用原始ticker（虽然可能失败）
+        pass
 
-
-def _get_stock_info(stock_code: str) -> Dict:
-    """获取股票基本信息"""
-    try:
-        if stock_code.startswith('sh') or stock_code.startswith('sz'):
-            # A股基本信息
-            df = ak.stock_individual_info_em(symbol=stock_code[2:])
-            return df.set_index('item')['value'].to_dict()
-        elif stock_code.startswith('hk'):
-            # 港股基本信息（简化处理）
-            return {"code": stock_code, "market": "港股", "note": "港股基础信息接口待完善"}
+    if data_type == "realtime":
+        # 上面已经获取了df，这里直接返回筛选结果
+        return df[df['代码'] == full_symbol]
+        
+    elif data_type == "history":
+        if start_date and end_date:
+            return ak.stock_us_hist(symbol=full_symbol, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
         else:
-            # 美股基本信息（简化处理）
-            return {"code": stock_code, "market": "美股", "note": "美股基础信息接口待完善"}
+            return ak.stock_us_hist(symbol=full_symbol, period="daily", adjust="qfq")
             
-    except Exception as e:
-        raise Exception(f"获取股票信息失败: {str(e)}")
-
+    elif data_type == "info":
+        return {"code": ticker, "market": "US", "note": "美股基础信息接口待完善"}
+    else:
+        raise ValueError(f"不支持的数据类型: {data_type}")
 
 def test_akshare_search():
     """
@@ -167,46 +246,29 @@ def test_akshare_search():
     
     # 测试用例
     test_cases = [
-        {"code": "000001", "type": "realtime", "desc": "平安银行A股实时行情"},
-        {"code": "sh600000", "type": "realtime", "desc": "浦发银行A股实时行情"},
-        {"code": "000001", "type": "history", "start_date": "20260210", "end_date": "20260213", "desc": "平安银行A股2026年2月10-13日历史数据"},
-        # {"code": "00700", "type": "realtime", "desc": "腾讯控股港股实时行情"},  # 可选测试
-        # {"code": "AAPL", "type": "realtime", "desc": "苹果公司美股实时行情"},   # 可选测试
+        {"code": "600519", "type": "realtime", "desc": "贵州茅台(代码) A股实时"},
+        {"code": "中科软", "type": "realtime", "desc": "中科软(中文名) A股实时"},
+        {"code": "NVDA", "type": "realtime", "desc": "英伟达(代码) 美股实时"},
+        {"code": "英伟达", "type": "realtime", "desc": "英伟达(中文名) 美股实时"},
+        {"code": "00700", "type": "realtime", "desc": "腾讯(代码) 港股实时"},
     ]
     
     for i, case in enumerate(test_cases, 1):
         print(f"\n测试案例 {i}: {case['desc']}")
-        print(f"股票代码: {case['code']}")
-        print(f"数据类型: {case['type']}")
+        print(f"输入: {case['code']}")
         print("-" * 40)
         
         try:
-            if 'start_date' in case and 'end_date' in case:
-                result = akshare_search(case['code'], case['type'], case['start_date'], case['end_date'])
-            else:
-                result = akshare_search(case['code'], case['type'])
+            result = akshare_search(case['code'], data_type=case['type'])
             if isinstance(result, pd.DataFrame):
-                print("返回数据类型: DataFrame")
-                print(f"数据形状: {result.shape}")
-                print("列名:", list(result.columns))
-                print("\n前5行数据:")
-                print(result.head())
-                if not result.empty:
-                    print("\n数据示例:")
-                    for col in result.columns[:5]:  # 显示前5列
-                        print(f"{col}: {result.iloc[0][col]}")
+                if result.empty:
+                    print("结果: 空DataFrame")
+                else:
+                    print(f"结果: \n{result.iloc[0].to_dict()}")
             else:
-                print("返回数据类型: Dictionary")
-                print("数据内容:")
-                for key, value in list(result.items())[:10]:  # 显示前10项
-                    print(f"  {key}: {value}")
-                    
+                print(f"结果: {result}")
         except Exception as e:
-            print(f"❌ 错误: {str(e)}")
-        
-        print("=" * 60)
-
+            print(f"错误: {e}")
 
 if __name__ == "__main__":
-    # 直接运行此文件时执行测试
     test_akshare_search()

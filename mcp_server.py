@@ -10,6 +10,7 @@ from tools.akshare_search import akshare_search
 from tools.calculator import add
 from tools.get_current_time import get_current_time
 from tools.generate_report import generate_markdown_report
+from tools.report_retriever import retrieve_reports
 
 
 class MCPServer:
@@ -24,7 +25,8 @@ class MCPServer:
             "add": self.add,
             "akshare_search": self.akshare_search,
             "get_current_time": self.get_current_time,
-            "generate_markdown_report": self.generate_markdown_report
+            "generate_markdown_report": self.generate_markdown_report,
+            "retrieve_reports": self.retrieve_reports
         }
 
     # ===== Tool definitions =====
@@ -75,6 +77,18 @@ class MCPServer:
         return {
             "type": "tool_result",
             "tool": "generate_markdown_report",
+            "content": data
+        }
+
+    def retrieve_reports(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        query = args["query"]
+        n_results = args.get("n_results", 5)
+        filters = args.get("filters", None)
+        
+        data = retrieve_reports(query, n_results, filters)
+        return {
+            "type": "tool_result",
+            "tool": "retrieve_reports",
             "content": data
         }
 

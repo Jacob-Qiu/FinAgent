@@ -6,7 +6,6 @@ from typing import List, Dict, Any
 import json
 
 from utils.config import load_config
-from llm.ollama_client import ollama_chat
 from mcp_server import MCPServer
 
 # 初始化配置和MCP服务器
@@ -64,9 +63,19 @@ def parse_tool_call(command: str) -> tuple[str, dict]:
 
 
 def generate_text(prompt: str) -> str:
-    """调用Ollama模型生成文本"""
-    messages = [{"role": "user", "content": prompt}]
-    return ollama_chat(messages)
+    """调用LLM模型生成文本"""
+    # 重新加载配置以获取最新的provider设置
+    config = load_config()
+    provider = config.get("llm_provider", "ollama")
+    
+    if provider == "gemini":
+        from llm.gemini_client import gemini_chat
+        return gemini_chat(prompt)
+    else:
+        # 默认使用Ollama
+        from llm.ollama_client import ollama_chat
+        messages = [{"role": "user", "content": prompt}]
+        return ollama_chat(messages)
 
 
 def call_mcp_tool(tool_name: str, args: Dict[str, Any]) -> str:
