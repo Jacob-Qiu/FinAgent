@@ -1,5 +1,5 @@
 llm_provider: gemini  # options: ollama, gemini
 
 gemini:
-  api_key: AIzaSyDhasCuc6clAAvJpKGWvsBjBLUozW6hIqU
+  api_key: 
   model: gemini-2.5-flash
