@@ -7,3 +7,9 @@ chroma_memory/
 test.py
 requirements.txt
 test_memory.py
+
+# 忽略向量数据库
+chroma_db/
+
+# 忽略研报原始数据
+data/reports/
