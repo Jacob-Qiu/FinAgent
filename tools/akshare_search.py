@@ -9,13 +9,6 @@ from typing import Dict, List, Union, Optional
 import sys
 import os
 
-# 确保可以从 utils 导入
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-try:
-    from utils.utils import generate_text
-except ImportError:
-    # 如果作为脚本直接运行，可能需要调整路径
-    pass
 
 def _resolve_stock_identity(query: str) -> str:
     """
@@ -23,6 +16,10 @@ def _resolve_stock_identity(query: str) -> str:
     返回格式：Market|Ticker|Name
     示例：US|NVDA|英伟达
     """
+    # 延迟导入，避免循环依赖
+
+    from utils.utils import generate_text
+
     prompt = f"""
     你是一个专业的金融数据专家。请识别输入项 query 指向的上市公司。
 
@@ -236,39 +233,4 @@ def _handle_us_share(ticker: str, data_type: str, start_date: str = None, end_da
     else:
         raise ValueError(f"不支持的数据类型: {data_type}")
 
-def test_akshare_search():
-    """
-    测试函数：展示akshare_search返回的原始数据格式
-    """
-    print("=" * 60)
-    print("akshare_search 测试函数 - 原始数据展示")
-    print("=" * 60)
-    
-    # 测试用例
-    test_cases = [
-        {"code": "600519", "type": "realtime", "desc": "贵州茅台(代码) A股实时"},
-        {"code": "中科软", "type": "realtime", "desc": "中科软(中文名) A股实时"},
-        {"code": "NVDA", "type": "realtime", "desc": "英伟达(代码) 美股实时"},
-        {"code": "英伟达", "type": "realtime", "desc": "英伟达(中文名) 美股实时"},
-        {"code": "00700", "type": "realtime", "desc": "腾讯(代码) 港股实时"},
-    ]
-    
-    for i, case in enumerate(test_cases, 1):
-        print(f"\n测试案例 {i}: {case['desc']}")
-        print(f"输入: {case['code']}")
-        print("-" * 40)
-        
-        try:
-            result = akshare_search(case['code'], data_type=case['type'])
-            if isinstance(result, pd.DataFrame):
-                if result.empty:
-                    print("结果: 空DataFrame")
-                else:
-                    print(f"结果: \n{result.iloc[0].to_dict()}")
-            else:
-                print(f"结果: {result}")
-        except Exception as e:
-            print(f"错误: {e}")
 
-if __name__ == "__main__":
-    test_akshare_search()

@@ -4,13 +4,49 @@
 """
 from typing import List, Dict, Any
 import json
+import asyncio
 
 from utils.config import load_config
-from mcp_server import MCPServer
+from fastmcp import Client
+from .mcp import get_local_mcp_client
 
-# 初始化配置和MCP服务器
+
 config = load_config()
-mcp_server = MCPServer()
+local_mcp_tools = {"add", "akshare_search", "generate_markdown_report", "retrieve_reports"}
+qieman_mcp_tools = {"SearchFinancialNews"}
+finmcp_mcp_tools = {"stock_data", "index_data"}
+
+
+
+async def _call_tool_async(tool_name: str, args: Dict[str, Any]) -> str:
+    """异步调用MCP工具，包含参数检查"""
+    if tool_name in local_mcp_tools:
+        # 本地 MCP 服务器调用工具
+        local_mcp_client = get_local_mcp_client()
+        async with local_mcp_client:
+            result = await local_mcp_client.call_tool(tool_name, args)
+            return result
+    elif tool_name in qieman_mcp_tools:
+        # 远程 且慢MCP 服务器调用工具
+        MCP_URL = config["mcpServers"]["qieman"]
+        from mcp.client.session import ClientSession
+        from mcp.client.sse import sse_client
+
+        async with sse_client(MCP_URL) as (read, write):
+            async with ClientSession(read, write) as session:
+                response = await session.call_tool(tool_name, args)
+                result = json.loads(response.content[0].text)
+        return result
+    elif tool_name in finmcp_mcp_tools:
+        # 远程 FinanceMCP 服务器调用工具
+        MCP_URL = config["mcpServers"]["finmcp"]
+        from mcp.client.session import ClientSession
+        from mcp.client.sse import sse_client
+        async with sse_client(MCP_URL) as (read, write):
+            async with ClientSession(read, write) as session:
+                response = await session.call_tool(tool_name, args)
+                result = response.content[0].text
+        return result
 
 
 def parse_plan(plan_content: str) -> List[str]:
@@ -65,7 +101,6 @@ def parse_tool_call(command: str) -> tuple[str, dict]:
 def generate_text(prompt: str) -> str:
     """调用LLM模型生成文本"""
     # 重新加载配置以获取最新的provider设置
-    config = load_config()
     provider = config.get("llm_provider", "ollama")
     
     if provider == "gemini":
@@ -78,33 +113,5 @@ def generate_text(prompt: str) -> str:
         return ollama_chat(messages)
 
 
-def call_mcp_tool(tool_name: str, args: Dict[str, Any]) -> str:
-    """调用MCP工具并返回结果"""
-    try:
-        # 调试信息
-        print(f"调试: 调用工具 {tool_name}，参数: {args}")
-        
-        # 参数验证
-        if tool_name == "add":
-            required_params = ["add1", "add2"]
-            for param in required_params:
-                if param not in args:
-                    return f"参数错误: add工具缺少{param}参数，当前参数: {list(args.keys())}"
-            if not isinstance(args["add1"], (int, float)) or not isinstance(args["add2"], (int, float)):
-                return f"参数错误: add1和add2必须是数字类型，当前类型: {type(args['add1'])}, {type(args['add2'])}"
-        elif tool_name == "akshare_search":
-            required_params = ["stock_code", "data_type"]
-            for param in required_params:
-                if param not in args:
-                    return f"参数错误: akshare_search工具缺少必需参数 {param}，当前参数: {list(args.keys())}"
-        elif tool_name == "generate_markdown_report":
-            required_params = ["user_requirement", "report_content"]
-            for param in required_params:
-                if param not in args:
-                    return f"参数错误: generate_markdown_report工具缺少必需参数 {param}，当前参数: {list(args.keys())}"
-        
-        result = mcp_server.handle_tool_call(tool_name, args)
-        return f"工具执行结果: {result['content']}"
-    except Exception as e:
-        return f"工具执行失败: {str(e)}"
+
 
