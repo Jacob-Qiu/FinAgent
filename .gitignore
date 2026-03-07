@@ -3,13 +3,16 @@ __pycache__/
 .venv/
 reports/
 chroma_memory/
-
-test.py
-requirements.txt
-test_memory.py
-
-# 忽略向量数据库
 chroma_db/
-
-# 忽略研报原始数据
 data/reports/
+report_template/
+
+requirements.txt
+config-info.yml
+test.py
+test_akshare_connection.py
+test_yfinance.py
+test_outer_mcp.py
+test_memory.py
+test_report.py
+todo_list.md
