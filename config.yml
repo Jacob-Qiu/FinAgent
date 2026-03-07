@@ -1,5 +1,13 @@
-llm_provider: gemini  # options: ollama, gemini
+llm_provider: ollama  # options: ollama, gemini
 
 gemini:
   api_key: 
-  model: gemini-2.5-flash
+  model:
+
+ollama:
+  base_url: http://localhost:11434/api/chat  # URL 只指向一个本地推理服务，模型是通过 model 字段在请求体里选的
+  model: qwen3  # 在这里换自己的模型
+
+mcpServers:
+  qieman: "https://stargate.yingmi.com/mcp/sse?apiKey=<API_KEY>"  # 前往https://qieman.com/mcp/service-ativation免费申请
+  finmcp: "http://106.14.205.176:3101/sse"
