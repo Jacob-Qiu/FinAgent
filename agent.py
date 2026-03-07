@@ -13,6 +13,7 @@ from utils.memory import (
     history, summary, update_summary,
     add_message, transfer_memory, get_context
 )
+from utils.mcp import create_local_mcp_server, setup_local_mcp_client
 
 
 # 主Agent类
@@ -259,6 +260,10 @@ class PlanExecuteAgent:
 
 # 主函数
 if __name__ == "__main__":
+    # 创建并配置MCP服务器和客户端
+    mcp_server = create_local_mcp_server()
+    setup_local_mcp_client(mcp_server)
+    []
     agent = PlanExecuteAgent()
     
     # 启动多轮对话界面
