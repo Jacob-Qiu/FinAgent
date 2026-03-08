@@ -1,6 +1,6 @@
 """
 创建日期：2026年02月17日
-介绍：生成专业Markdown格式报告工具函数
+介绍：其他兜底格式的报告
 """
 
 from typing import Dict, Union, List

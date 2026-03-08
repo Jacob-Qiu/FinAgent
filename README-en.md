@@ -8,12 +8,11 @@
 【待补充简介】
 
 ## Function
-
-- **问答系统**：支持自然语言提问，如“腾讯近五年营收趋势如何？”
-- **报告生成**：可生成结构化公司分析报告（含财务指标、行业对比等）
-- **RAG 架构**：基于本地向量数据库检索相关研报片段，提升回答准确性
-- **实时数据接入**：通过 AKShare 工具动态获取股票行情、财务数据等
-- **MCP 服务接口**：提供标准化通信协议，便于前端或外部系统调用
+- **Q&A system**: support natural language questions, such as "what is the revenue trend of Tencent in the past five years?"
+- **report generation**: can generate structured company analysis report (including financial indicators, industry comparison, etc.)
+- **rag architecture**: retrieve relevant research report fragments based on local vector database to improve the accuracy of answers
+- **real time data access**: dynamically obtain stock quotes, financial data, etc. through akshare tool
+- **mcp service interface**: provide standardized communication protocol to facilitate front-end or external system calls
 
 ## Structure
 ```
@@ -58,7 +57,7 @@ FinAgent/
 
 ## Quick Start (uv)
 
-### 1. 安装 uv（若尚未安装）
+### 1. Intsall uv
 
 ```bash
 # Linux / macOS
@@ -69,21 +68,40 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 ```
 
 
-### 2. 克隆项目并创建虚拟环境
+### 2. Clone project and create virtual environment
 
 ```bash
-# 在父文件夹下克隆远程仓库
+# Clone remote warehouse under parent folder
 git clone git@github.com:Jacob-Qiu/FinAgent.git
 cd FinAgent
 
-# 使用 uv 自动创建虚拟环境并安装依赖
+# Use UV to automatically create virtual environments and install dependencies
 uv sync
 ```
-uv sync 会：
-* 根据 .python-version 或系统默认 Python 创建 .venv
-* 从 pyproject.toml 安装所有依赖（包括 dev 依赖）
+UV sync will:
+* Create.Venv according to.Python version or the system default Python
+* Install all dependencies (including dev dependencies) from pyproject.toml
 
-### 3. 启动服务
+### 3 Configuration information
+Fill in the configuration information in config.yml
+
+### 4 Start the third-party MCP server
+In this project, we use MCP tools for third-party projects such as Qieman.
+
+1. Qieman
+It can be directly connected to its server for operation without local deployment
+
+2. FinanceMCP
+It needs to be deployed locally. Project source: https://github.com/guangxiangdebizi/FinanceMCP For details, please refer to the README of the project.
+
+```bash
+# Install
+npm install finance-mcp
+# Start MCP Service
+npx -y finance-mcp-http
+```
+
+### 5. Start Service
 ```bash
 uv run python agent.py
 ```

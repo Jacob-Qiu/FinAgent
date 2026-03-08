@@ -83,7 +83,23 @@ uv sync 会：
 * 根据 .python-version 或系统默认 Python 创建 .venv
 * 从 pyproject.toml 安装所有依赖（包括 dev 依赖）
 
-### 3. 启动服务
+### 3. 配置信息
+在config.yml中填写配置信息
+
+### 4. 启动第三方MCP服务器
+在这个项目中，我们使用了包括且慢等第三方项目的MCP工具。
+1. 且慢
+可直接连接其服务器运行，不需要本地部署
+2. FinanceMCP
+需要在本地部署，项目来源：https://github.com/guangxiangdebizi/FinanceMCP ，具体细节可参考该项目的README。
+```bash
+# 安装
+npm install finance-mcp
+# 启动服务器
+npx -y finance-mcp-http
+```
+
+### 5. 启动服务
 ```bash
 uv run python agent.py
 ```

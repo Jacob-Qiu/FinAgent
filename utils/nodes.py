@@ -28,15 +28,18 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
     # 动态导入获取最新的history和summary
     from .memory import history, summary
 
-
     # todo 定义可用的工具列表
     tool_candidates = [
-        {"tool_name": "add", "description": "两数相加"},
-        {"stock_data": "add", "description": "获取指定股票的历史行情数据"},
-        {"SearchFinancialNews": "add", "description": "根据关键词和时间范围搜索财经资讯内容"},
-        {"get_current_time": "add", "description": "获取当前时间工具"},
-        {"generate_markdown_report": "add", "description": "生成Markdown报告工具"},
-        {"retrieve_reports": "add", "description": "研报检索工具"},
+        {"tool_name": "add", "description": "两数相加"},  # 后期移除
+        {"tool_name": "stock_data", "description": "获取指定股票的历史行情数据"},
+        {"tool_name": "company_performance", "description": "获取指定公司的综合表现数据"},
+        {"tool_name": "SearchFinancialNews", "description": "根据关键词和时间范围搜索财经资讯内容"},
+        {"tool_name": "hot_news_7x24", "description": "获取7x24小时热门新闻"},
+        {"tool_name": "get_current_time", "description": "获取当前时间工具"},  # 后期移除
+        {"tool_name": "retrieve_reports", "description": "研报检索工具"},
+        {"tool_name": "generate_financial_report", "description": "生成公司财务分析报告"},
+        {"tool_name": "generate_investment_report", "description": "生成股票投资组合报告"},
+        {"tool_name": "generate_markdown_report", "description": "生成其他类型（非公司财务、非投资）分析报告"},
     ]
 
     prompt_template = """
@@ -58,14 +61,96 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
             ...
         ]
 
-        ## 当前对话上下文: 
+        ## 当前对话上下文
         {summary}
         
-        ## 用户当前需求: 
+        ## 用户当前需求
         {user_input}
         
-        ## tool_candidates: 
+        ## tool_candidates:
         {tool_candidates}
+        
+        ## 示例
+        ### 示例1
+        如果用户要求生成一份公司A的财务相关的分析报告，则需要返回：
+        [
+            {{
+                "step": 1,
+                "description": "获取公司A的历史行情数据",
+                "action": "使用stock_data查询A公司股票历史数据",
+                "tool": "stock_data",
+            }},
+            {{
+                "step": 2,
+                "description": "获取公司A的综合表现",
+                "action": "使用company_performance查询公司A及市场的新闻",
+                "tool": "company_performance",
+            }},
+            {{
+                "step": 3,
+                "description": "获取公司A及市场的新闻",
+                "action": "使用SearchFinancialNews查询公司A及市场的新闻",
+                "tool": "SearchFinancialNews",
+            }},
+            {{
+                "step": 4,
+                "description": "获取公司A的研报",
+                "action": "使用retrieve_reports查询公司A的研报",
+                "tool": "retrieve_reports",
+            }},
+            {{
+                "step": 5,
+                "description": "生成公司A的公司业务分析报告",
+                "action": "使用generate_financial_report生成公司A的公司业务分析报告",
+                "tool": "generate_financial_report",
+            }}
+        ]
+        ### 示例2
+        如果用户要求生成一份投资报告，则需要返回：
+        [
+            {{
+                "step": 1,
+                "description": "分析用户需求",
+                "action": "分析用户需求，确定需要查询哪些股票、指数、新闻，以及需要查询的研报",
+                "tool": "stock_data",
+            }},
+            {{
+                "step": 2,
+                "description": "获取市场数据和分析",
+                "action": "使用stock_data查询相关股票历史数据",
+                "tool": "stock_data",
+            }},
+            {{
+                "step": 3,
+                "description": "获取指数数据作为基准",
+                "action": "使用index_data查询相关指数数据",
+                "tool": "index_data",
+            }},
+            {{
+                "step": 4,
+                "description": "获取金融新闻资讯",
+                "action": "使用SearchFinancialNews查询金融市场新闻",
+                "tool": "SearchFinancialNews",
+            }},
+            {{
+                "step": 5,
+                "description": "获取7x24小时热门新闻",
+                "action": "使用hot_news_7x24查询实时热门新闻",
+                "tool": "hot_news_7x24",
+            }},
+            {{
+                "step": 6,
+                "description": "获取投资组合相关研报",
+                "action": "使用retrieve_reports查询投资组合相关研报",
+                "tool": "retrieve_reports",
+            }},
+            {{
+                "step": 7,
+                "description": "生成投资组合分析报告",
+                "action": "使用generate_investment_report生成投资组合分析报告",
+                "tool": "generate_investment_report",
+            }}
+        ]
     """
 
     # 格式化提示文本
@@ -106,26 +191,8 @@ def execute_node(state: AgentState) -> Dict[str, Any]:
     # 如果计划中指定了工具，则调用工具
     if tool_name and tool_name != "None":
 
-        # "akshare_search": {{
-        #     "description": "股票数据查询工具",
-        #     "parameters": {{
-        #         "stock_code": {{"type": "str", "description": "股票代码"}},
-        #         "data_type": {{
-        #             "type": "str",
-        #             "description": "数据类型",
-        #             "enum": [
-        #                 {{"value": "realtime", "description": "实时行情（用户查询当前或最新行情时使用）"}},
-        #                 {{"value": "history", "description": "历史数据（用户查询指定日期范围的历史行情时使用）"}},
-        #                 {{"value": "info", "description": "基本信息（用户查询股票基本信息时使用）"}}
-        #             ]
-        #         }},
-        #         "start_date": {{"type": "str", "description": "开始日期（可选，格式: YYYYMMDD）"}},
-        #         "end_date": {{"type": "str", "description": "结束日期（可选，格式: YYYYMMDD）"}}
-        #     }}
-        # }},
-
-        # todo 构造参数分析提示，补充新的工具，工具的参数名参考mcp_server.py
-        # todo 后续考虑将工具参数定义写出来
+        # todo 构造参数分析提示，补充新的工具
+        # todo 目前是一次性全部加载，后续考虑根据plan节点给出的步骤，只加载必要的工具定义，不然消耗token
         prompt_template = """
             ## 要求
             请分析以下任务需要调用工具"{tool_name}"时的具体参数。
@@ -188,16 +255,15 @@ def execute_node(state: AgentState) -> Dict[str, Any]:
                         "pageSize": {{"type": "int", "description": "每页数量（可选，默认为20）"}}
                     }}
                 }},
+                "hot_news_7x24": {{
+                    "description": "获取7x24小时热门新闻",
+                    "parameters": {{
+                        "limit": {{"type": "int", "description": "返回的新闻数量（可选，默认为100）"}}
+                    }}
+                }},
                 "get_current_time": {{
                     "description": "获取当前时间工具",
                     "parameters": {{}}
-                }},
-                "generate_markdown_report": {{
-                    "description": "生成Markdown报告工具",
-                    "parameters": {{
-                        "user_requirement": {{"type": "str", "description": "用户需求"}},
-                        "report_content": {{"type": "str", "description": "报告内容"}}
-                    }}
                 }},
                 "retrieve_reports": {{
                     "description": "研报检索工具",
@@ -206,9 +272,39 @@ def execute_node(state: AgentState) -> Dict[str, Any]:
                         "n_results": {{"type": "int", "description": "返回的研报数量（可选，默认为5）"}},
                         "filters": {{"type": "dict", "description": "元数据过滤条件（可选，例如 {{'ticker': 'NVDA'}}）"}}
                     }}
+                }},
+                "generate_financial_report": {{
+                    "description": "生成公司财务分析报告",
+                    "parameters": {{
+                        "company_name": {{"type": "str", "description": "公司名称"}},
+                        "stock_data": {{"type": "str", "description": "股票数据，从前序步骤执行结果中获取"}},
+                        "company_performance": {{"type": "str", "description": "公司综合表现，从前序步骤执行结果中获取"}},
+                        "financial_news": {{"type": "str", "description": "新闻，从前序步骤执行结果中获取"}},
+                        "rag_content": {{"type": "str", "description": "公司研报等，从前序步骤执行结果中获取"}},
+                        "save_to_file": {{"type": "bool", "description": "是否存储报告（可选，默认为True）"}},
+                        "file_path": {{"type": "str", "description": "报告存储路径（可选，默认为项目路径的reports/文件夹中）"}},
+                    }}
+                }}, 
+                "generate_investment_report": {{
+                    "description": "生成股票投资组合报告",
+                    "parameters": {{
+                        "user_requirement": {{"type": "str", "description": "用户需求描述，从用户原始需求中获取"}},
+                        "stock_data": {{"type": "str", "description": "股票数据，从前序步骤执行结果中获取"}},
+                        "index_data": {{"type": "str", "description": "公司综合表现，从前序步骤执行结果中获取"}},
+                        "financial_news": {{"type": "str", "description": "新闻，从前序步骤执行结果中获取"}},
+                        "rag_content": {{"type": "str", "description": "公司研报等，从前序步骤执行结果中获取"}},
+                        "save_to_file": {{"type": "bool", "description": "是否存储报告（可选，默认为True）"}},
+                        "file_path": {{"type": "str", "description": "报告存储路径（可选，默认为项目路径的reports/文件夹中）"}},
+                    }}
+                }},      
+                "generate_markdown_report": {{
+                    "description": "生成其他类型（非公司财务、非投资）分析报告",
+                    "parameters": {{
+                        "user_requirement": {{"type": "str", "description": "用户需求"}},
+                        "report_content": {{"type": "str", "description": "报告内容"}}
+                    }}
                 }}
             }}
-            
             ## 回答格式：
             {{
                 "分析": "你的分析过程",
