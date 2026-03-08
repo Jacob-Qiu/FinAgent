@@ -4,10 +4,10 @@
 """
 
 from .calculator import add
-from .akshare_search import akshare_search
-from .yfinance_search import yfinance_search
 from .get_current_time import get_current_time
+from .generate_financial_report import generate_financial_report
+from .generate_investment_report import generate_investment_report
 from .generate_report import generate_markdown_report
 from .report_retriever import retrieve_reports
 
-__all__ = ['add', 'akshare_search', 'yfinance_search', 'get_current_time', 'generate_markdown_report', 'retrieve_reports']
+__all__ = ['add', 'get_current_time', 'generate_financial_report', 'generate_investment_report', 'generate_markdown_report', 'retrieve_reports']
