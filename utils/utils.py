@@ -12,9 +12,11 @@ from .mcp import get_local_mcp_client
 
 
 config = load_config()
-local_mcp_tools = {"add", "akshare_search", "generate_markdown_report", "retrieve_reports"}
+
+# todo 随时更新工具
+local_mcp_tools = {"add", "get_current_time", "retrieve_reports", "generate_financial_report", "generate_investment_report", "generate_markdown_report"}
 qieman_mcp_tools = {"SearchFinancialNews"}
-finmcp_mcp_tools = {"stock_data", "index_data"}
+finmcp_mcp_tools = {"stock_data", "index_data", "company_performance", "hot_news_7x24"}
 
 
 
@@ -26,23 +28,27 @@ async def _call_tool_async(tool_name: str, args: Dict[str, Any]) -> str:
         async with local_mcp_client:
             result = await local_mcp_client.call_tool(tool_name, args)
             return result
+
     elif tool_name in qieman_mcp_tools:
         # 远程 且慢MCP 服务器调用工具
         MCP_URL = config["mcpServers"]["qieman"]
         from mcp.client.session import ClientSession
         from mcp.client.sse import sse_client
-
         async with sse_client(MCP_URL) as (read, write):
             async with ClientSession(read, write) as session:
                 response = await session.call_tool(tool_name, args)
                 result = json.loads(response.content[0].text)
         return result
+
     elif tool_name in finmcp_mcp_tools:
         # 远程 FinanceMCP 服务器调用工具
-        MCP_URL = config["mcpServers"]["finmcp"]
+        MCP_URL = config["mcpServers"]["finmcp"]["url"]
+        headers = {
+            "X-Tushare-Token": config["mcpServers"]["finmcp"]["token"]
+        }
+        from mcp.client.streamable_http import streamablehttp_client
         from mcp.client.session import ClientSession
-        from mcp.client.sse import sse_client
-        async with sse_client(MCP_URL) as (read, write):
+        async with streamablehttp_client(url=MCP_URL, headers=headers) as (read, write, _):
             async with ClientSession(read, write) as session:
                 response = await session.call_tool(tool_name, args)
                 result = response.content[0].text

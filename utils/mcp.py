@@ -7,17 +7,20 @@ import yaml
 import os
 
 from .config import load_config
-from tools.akshare_search import akshare_search as _akshare_search
 from tools.calculator import add as _add
 from tools.get_current_time import get_current_time as _get_current_time
-from tools.generate_report import generate_markdown_report as _generate_markdown_report
 from tools.report_retriever import retrieve_reports as _retrieve_reports
+from tools.generate_financial_report import generate_financial_report as _generate_financial_report
+from tools.generate_investment_report import generate_investment_report as _generate_investment_report
+from tools.generate_report import generate_markdown_report as _generate_markdown_report
+
 
 # 自定义MCP客户端
 _local_mcp_client = None
 _qieman_mcp_client = None
 
 
+# todo 更新工具
 def create_local_mcp_server() -> FastMCP:
     """创建并配置FastMCP服务器"""
     mcp_local_server = FastMCP("FinAgent_local_MCP_Server")
@@ -26,29 +29,64 @@ def create_local_mcp_server() -> FastMCP:
     def add(add1: int, add2: int) -> str:
         result = _add(add1, add2)
         return str(result)
-    
-    @mcp_local_server.tool()
-    def akshare_search(stock_code: str, data_type: str, start_date: str = None, end_date: str = None) -> str:
-        if start_date and end_date:
-            data = _akshare_search(stock_code, data_type, start_date, end_date)
-        else:
-            data = _akshare_search(stock_code, data_type)
-        return str(data)
-    
+
     @mcp_local_server.tool()
     def get_current_time(time_format: str = "standard") -> str:
         data = _get_current_time(time_format)
         return str(data)
-    
-    @mcp_local_server.tool()
-    def generate_markdown_report(user_requirement: str, report_content: str) -> str:
-        data = _generate_markdown_report(user_requirement, report_content, save_to_file=True)
-        return str(data)
-    
+            
     @mcp_local_server.tool()
     def retrieve_reports(query: str, n_results: int = 5, filters: dict = None) -> str:
         data = _retrieve_reports(query, n_results, filters)
         return str(data)
+    
+    @mcp_local_server.tool()
+    def generate_financial_report(
+        company_name: str,
+        stock_data: str,
+        company_performance: str,
+        financial_news: str,
+        rag_content: str,
+        save_to_file: bool = True,
+        file_path: str = None) -> str:
+        data = _generate_financial_report(
+            company_name,
+            stock_data,
+            company_performance,
+            financial_news,
+            rag_content,
+            save_to_file=save_to_file,
+            file_path=file_path
+        )
+        return str(data)
+
+    @mcp_local_server.tool()
+    def generate_investment_report(
+        user_requirement: str,
+        stock_data: str,
+        index_data: str,
+        financial_news: str,
+        hot_news_7x24: str,
+        rag_content: str,
+        save_to_file: bool = True,
+        file_path: str = None) -> str:
+        data = _generate_investment_report(
+            user_requirement,
+            stock_data,
+            index_data,
+            financial_news,
+            hot_news_7x24,
+            rag_content,
+            save_to_file=save_to_file,
+            file_path=file_path
+        )
+        return str(data)
+
+    @mcp_local_server.tool()
+    def generate_markdown_report(user_requirement: str, report_content: str) -> str:
+        data = _generate_markdown_report(user_requirement, report_content, save_to_file=True)
+        return str(data)
+
     
     return mcp_local_server
 
