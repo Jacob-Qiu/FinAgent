@@ -41,23 +41,8 @@ def create_local_mcp_server() -> FastMCP:
         return str(data)
     
     @mcp_local_server.tool()
-    def generate_financial_report(
-        company_name: str,
-        stock_data: str,
-        company_performance: str,
-        financial_news: str,
-        rag_content: str,
-        save_to_file: bool = True,
-        file_path: str = None) -> str:
-        data = _generate_financial_report(
-            company_name,
-            stock_data,
-            company_performance,
-            financial_news,
-            rag_content,
-            save_to_file=save_to_file,
-            file_path=file_path
-        )
+    def generate_financial_report(user_requirement: str, save_to_file: bool = True, file_path: str = None) -> str:
+        data = _generate_financial_report(user_requirement, save_to_file=save_to_file, file_path=file_path)
         return str(data)
 
     @mcp_local_server.tool()
