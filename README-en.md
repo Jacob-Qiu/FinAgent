@@ -5,7 +5,7 @@
 </p>
 
 ## Introduction
-In financial investment and research scenarios, user problems often have multi hop, data dependency and logical complexity. Therefore, we developed FinAgent. FinAgent is an LLM agent system for the financial field, which supports real-time data query, private knowledge retrieval, multi-step reasoning and structured output.  
+FinAgent is an LLM agent system for the financial field, which supports real-time data query, private knowledge retrieval, multi-step reasoning and structured output.  
 The system adopts the Plan-and-Execute architecture:
 (1) Plan: the agent first analyzes the user intention and generates a structured task plan; 
 (2) Execute: call the process through langgraph to execute akshare query, rag retrieval and other subtasks in turn. 
