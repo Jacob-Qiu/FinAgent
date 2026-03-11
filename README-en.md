@@ -5,7 +5,8 @@
 </p>
 
 ## Introduction
-【待补充简介】
+In financial investment and research scenarios, user problems often have multi hop, data dependency and logical complexity. Therefore, we set up financial institutions. Finagent is an LLM agent system for the financial field, which supports real-time data query, private knowledge retrieval, multi-step reasoning and structured output.  
+The system adopts the plan execution architecture. (1) Plan: the agent first analyzes the user intention and generates a structured task plan; (2) Execution: call the process through langgraph choreographer to execute akshare query, rag retrieval and other subtasks in turn. (3) Re planning: check whether the implementation result conforms to the expected plan, and determine whether to continue the implementation, adjust the plan, or output the final result.
 
 ## Function
 - **Q&A system**: support natural language questions, such as "what is the revenue trend of Tencent in the past five years?"
@@ -17,38 +18,42 @@
 ## Structure
 ```
 FinAgent/
-├── mcp_server.py # MCP Server
 ├── agent.py # Core agent logic: coordinating rag, tool call and LLM generation
 │
 ├── tools/ # Tool module
-│ ├── init.py
+│ ├── __init__.py
 │ ├── akshare_search.py
 │ ├── calculator.py
+│ ├── generate_financial_report.py
+│ ├── generate_investment_report.py
 │ ├── generate_report.py
 │ ├── get_current_time.py
+│ ├── report_retriever.py
 │ └── ...
 │
 ├── utils/ # Utility functions
-│ ├── init.py
-│ ├── config_loader.py # Load config file
+│ ├── __init__.py
+│ ├── config.py # Load config file
+│ ├── mcp.py # MCP server and client configuration
+│ ├── memory.py # Memory module
 │ ├── nodes.py # LangGraph nodes
-│ ├── memory.py # History information process
-│ ├── utils.py # General utility functions
+│ ├── rag.py # RAG
+│ ├── utils.py # other
 │ └── ...
+│
+├── llm/
+│ ├── __init__.py
+│ ├── gemini_client.py # gemini model
+│ └── ollama_client.py # ollama model
 │
 ├── constants.py/ # Global constants（TBC）
 │
 ├── exceptions.py/ # Exceptions（TBC）
 │
-├── rag/ # RAG components
-│ ├── vector_store.py # Vector database management
-│ └── retriever.py # Retrieval logic
-│
 ├── data/
-│ ├── reports/ # Research report of 20 companies in recent 10 years (pdf/txt)
-│ └── ...
 │
 ├── pyproject.toml
+├── uv.lock
 ├── .python-version
 ├── config.yml # Configuration file
 ├── README-en.md
