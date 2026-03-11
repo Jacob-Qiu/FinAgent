@@ -5,7 +5,7 @@
 </p>
 
 ## 简介
-在金融投资和研究场景中，用户问题往往具有多跳性、数据依赖性和逻辑复杂性。因此，我们做了FinAgent。 FinAgent是一个面向金融领域的LLM agent系统，支持实时数据查询、私有知识检索、多步推理和结构化输出。 
+FinAgent是一个面向金融领域的LLM agent系统，支持实时数据查询、私有知识检索、多步推理和结构化输出。 
 系统采用Plan-and-Execute结构：
 （1）Plan：agent首先分析用户意图，生成结构化的任务计划；
 （2）Execute：通过LangGraph调用流程，依次执行akshare查询、RAG检索等子任务。
