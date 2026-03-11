@@ -5,8 +5,11 @@
 </p>
 
 ## Introduction
-In financial investment and research scenarios, user problems often have multi hop, data dependency and logical complexity. Therefore, we set up financial institutions. Finagent is an LLM agent system for the financial field, which supports real-time data query, private knowledge retrieval, multi-step reasoning and structured output.  
-The system adopts the plan execution architecture. (1) Plan: the agent first analyzes the user intention and generates a structured task plan; (2) Execution: call the process through langgraph choreographer to execute akshare query, rag retrieval and other subtasks in turn. (3) Re planning: check whether the implementation result conforms to the expected plan, and determine whether to continue the implementation, adjust the plan, or output the final result.
+FinAgent is an LLM agent system for the financial field, which supports real-time data query, private knowledge retrieval, multi-step reasoning and structured output.  
+The system adopts the Plan-and-Execute architecture:
+(1) Plan: the agent first analyzes the user intention and generates a structured task plan; 
+(2) Execute: call the process through langgraph to execute akshare query, rag retrieval and other subtasks in turn. 
+(3) Replan: check whether the implementation result conforms to the expected plan, and determine whether to continue the implementation, adjust the plan, or output the final result.
 
 ## Function
 - **Q&A system**: support natural language questions, such as "what is the revenue trend of Tencent in the past five years?"
