@@ -5,7 +5,8 @@
 </p>
 
 ## 简介
-【待补充简介】
+在金融投资和研究场景中，用户问题往往具有多跳性、数据依赖性和逻辑复杂性。因此，我们建立金融机构。FinAgent是一个面向金融领域的LLM agent系统，支持实时数据查询、私有知识检索、多步推理和结构化输出。 
+系统采用计划执行体系结构。（1）计划：agent首先分析用户意图，生成结构化的任务计划；（2）执行：通过LangGraph choreographer调用流程，依次执行akshare查询、RAG检索等子任务。（3）重新规划：检查执行结果是否符合预期计划，并确定继续执行、调整计划、还是输出最终结果。
 
 ## 功能亮点
 
@@ -18,40 +19,44 @@
 ## 项目结构
 ```
 FinAgent/
-├── mcp_server.py # MCP（Model Communication Protocol）服务入口
 ├── agent.py # 核心智能体逻辑：协调 RAG、工具调用与 LLM 生成
 │
 ├── tools/ # 工具模块
-│ ├── init.py
+│ ├── __init__.py
 │ ├── akshare_search.py
 │ ├── calculator.py
+│ ├── generate_financial_report.py
+│ ├── generate_investment_report.py
 │ ├── generate_report.py
 │ ├── get_current_time.py
+│ ├── report_retriever.py
 │ └── ...
 │
 ├── utils/ # 功能函数
-│ ├── init.py
-│ ├── config_loader.py # 加载配置文件
+│ ├── __init__.py
+│ ├── config.py # 加载配置文件
+│ ├── mcp.py # mcp客户端、服务端配置
+│ ├── memory.py # 记忆模块
 │ ├── nodes.py # LangGraph节点
-│ ├── memory.py # 历史消息处理
+│ ├── rag.py # RAG
 │ ├── utils.py # 其他
 │ └── ...
+│
+├── llm/ # 大模型
+│ ├── __init__.py
+│ ├── gemini_client.py # gemini模型
+│ └── ollama_client.py # ollama模型
 │
 ├── constants.py/ # 全局常量（TBC）
 │
 ├── exceptions.py/ # 自定义异常（TBC）
 │
-├── rag/ # RAG组件
-│ ├── vector_store.py # 向量数据库管理（FAISS / Chroma）
-│ └── retriever.py # 检索逻辑
-│
 ├── data/
-│ ├── reports/ # 20家公司近10年研报（PDF/TXT）
-│ └── ...
 │
 ├── pyproject.toml
+├── uv.lock
 ├── .python-version
-├── config.yml # Configuration file
+├── config.yml # 配置文件
 ├── README-en.md
 └── README-cn.md
 ```
