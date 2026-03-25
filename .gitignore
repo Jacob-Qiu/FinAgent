@@ -6,6 +6,8 @@ chroma_memory/
 chroma_db/
 data/reports/
 report_template/
+memories/
+node_modules/
 
 requirements.txt
 config-info.yml
@@ -14,5 +16,8 @@ test_akshare_connection.py
 test_yfinance.py
 test_outer_mcp.py
 test_memory.py
+test_memory_integration.py
 test_report.py
 todo_list.md
+package-lock.json
+package.json
