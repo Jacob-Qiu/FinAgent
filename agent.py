@@ -11,7 +11,7 @@ from tkinter import messagebox, scrolledtext
 from utils.nodes import AgentState, plan_node, execute_node, replan_node
 from utils.memory import (
     history, summary, update_summary,
-    add_message, transfer_memory, get_context
+    add_message, transfer_memory, get_context, save_unsaved_memory
 )
 from utils.mcp import create_local_mcp_server, setup_local_mcp_client
 
@@ -80,13 +80,10 @@ class PlanExecuteAgent:
         result = self._execute_with_console_output(initial_state)
         
         # 将AI回复添加到记忆系统
-        # todo 现在设计的是只要是final answer就更新摘要和长期记忆
         if result.get('final_answer'):
             add_message("assistant", result['final_answer'])
             # 更新摘要
             update_summary("PlanExecuteAgent")
-            # 转移到长期记忆
-            transfer_memory()
         
         return result
     
@@ -253,6 +250,14 @@ class PlanExecuteAgent:
         chat_display.config(state=tk.NORMAL)
         chat_display.insert(tk.END, "欢迎使用FinAgent对话系统！\n请输入您的问题开始对话。\n\n")
         chat_display.config(state=tk.DISABLED)
+        
+        # 设置窗口关闭时的回调函数
+        def on_closing():
+            # 保存未保存的工作记忆（会自动更新长期记忆）
+            save_unsaved_memory()
+            root.destroy()
+        
+        root.protocol("WM_DELETE_WINDOW", on_closing)
         
         # 启动GUI主循环
         root.mainloop()
