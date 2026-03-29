@@ -17,6 +17,7 @@ test_yfinance.py
 test_outer_mcp.py
 test_memory.py
 test_memory_integration.py
+test_memory_save_strategy.py
 test_report.py
 todo_list.md
 package-lock.json
