@@ -57,7 +57,7 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
         {"tool_name": "company_performance", "description": "获取指定公司的综合表现数据"},
         {"tool_name": "SearchFinancialNews", "description": "根据关键词和时间范围搜索财经资讯内容"},
         {"tool_name": "hot_news_7x24", "description": "获取7x24小时热门新闻"},
-        {"tool_name": "get_current_time", "description": "获取当前时间工具"},  # 后期移除
+        {"tool_name": "get_current_time", "description": "获取当前时间工具"},
         {"tool_name": "retrieve_reports", "description": "研报检索工具"},
         {"tool_name": "generate_financial_report", "description": "生成公司财务分析报告。若仅需生成报告则无需调用其他工具；但若用户有额外需求，仍需配合其他工具使用"},
         {"tool_name": "generate_investment_report", "description": "生成股票投资组合报告"},
@@ -71,7 +71,8 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
             2. 步骤描述
             3. 需要执行的操作
             4. 需要调用的工具
-        对于每一步计划，需要判断是否需要调用工具：如果需要，则需要从tools_candidate中确定需要的工具名；若不需要，则输入"None"
+        对于每一步计划，需要判断是否需要调用工具：如果需要，则需要从tools_candidate中确定需要的工具名；若不需要，则输入"None"。
+        **第一步一定需要调用"get_current_time"工具，用于获取当前时间**。
         示例格式：
         [
             {{
