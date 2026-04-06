@@ -981,38 +981,38 @@ class MemoryManager:
                     if "investment_style" in prefs:
                         style = prefs["investment_style"]
                         if style.get("type"):
-                            self.update_preference("投资风格", "类型", style["type"])
+                            self.long_term.update_preference("投资风格", "类型", style["type"])
                         if style.get("risk_tolerance"):
-                            self.update_preference("投资风格", "风险承受能力", style["risk_tolerance"])
+                            self.long_term.update_preference("投资风格", "风险承受能力", style["risk_tolerance"])
                         if style.get("investment_horizon"):
-                            self.update_preference("投资风格", "投资期限", style["investment_horizon"])
+                            self.long_term.update_preference("投资风格", "投资期限", style["investment_horizon"])
                     if "info_preferences" in prefs:
                         info = prefs["info_preferences"]
                         if info.get("detail_level"):
-                            self.update_preference("信息偏好", "详细程度", info["detail_level"])
+                            self.long_term.update_preference("信息偏好", "详细程度", info["detail_level"])
                         if info.get("focus_areas"):
-                            self.update_preference("信息偏好", "关注重点", info["focus_areas"])
+                            self.long_term.update_preference("信息偏好", "关注重点", info["focus_areas"])
                         if info.get("dislikes"):
-                            self.update_preference("信息偏好", "不喜欢", info["dislikes"])
+                            self.long_term.update_preference("信息偏好", "不喜欢", info["dislikes"])
                     if "industry_preferences" in prefs:
                         industry = prefs["industry_preferences"]
                         if industry.get("focus_industries"):
-                            self.update_preference("行业偏好", "重点关注", industry["focus_industries"])
+                            self.long_term.update_preference("行业偏好", "重点关注", industry["focus_industries"])
                         if industry.get("avoid_industries"):
-                            self.update_preference("行业偏好", "避免行业", industry["avoid_industries"])
+                            self.long_term.update_preference("行业偏好", "避免行业", industry["avoid_industries"])
                 
                 # 更新关注列表
                 if "watchlist" in data:
                     watchlist = data["watchlist"]
                     for stock in watchlist.get("stocks", []):
                         if stock:
-                            self.add_to_watchlist("股票", stock)
+                            self.long_term.add_to_watchlist("股票", stock)
                     for company in watchlist.get("companies", []):
                         if company:
-                            self.add_to_watchlist("公司", company)
+                            self.long_term.add_to_watchlist("公司", company)
                     for industry in watchlist.get("industries", []):
                         if industry:
-                            self.add_to_watchlist("行业", industry)
+                            self.long_term.add_to_watchlist("行业", industry)
                 
                 # 更新投资档案
                 if "investment_profile" in data:
@@ -1020,27 +1020,27 @@ class MemoryManager:
                     if "goals" in profile:
                         goals = profile["goals"]
                         if goals.get("long_term"):
-                            self.update_investment_profile("投资目标", "长期目标", goals["long_term"])
+                            self.long_term.update_investment_profile("投资目标", "长期目标", goals["long_term"])
                         if goals.get("short_term"):
-                            self.update_investment_profile("投资目标", "短期目标", goals["short_term"])
+                            self.long_term.update_investment_profile("投资目标", "短期目标", goals["short_term"])
                     if "allocation" in profile:
                         alloc = profile["allocation"]
                         if alloc.get("stock_ratio"):
-                            self.update_investment_profile("资产配置", "股票占比", alloc["stock_ratio"])
+                            self.long_term.update_investment_profile("资产配置", "股票占比", alloc["stock_ratio"])
                         if alloc.get("bond_ratio"):
-                            self.update_investment_profile("资产配置", "债券占比", alloc["bond_ratio"])
+                            self.long_term.update_investment_profile("资产配置", "债券占比", alloc["bond_ratio"])
                         if alloc.get("cash_ratio"):
-                            self.update_investment_profile("资产配置", "现金占比", alloc["cash_ratio"])
+                            self.long_term.update_investment_profile("资产配置", "现金占比", alloc["cash_ratio"])
                         if alloc.get("other"):
-                            self.update_investment_profile("资产配置", "其他", alloc["other"])
+                            self.long_term.update_investment_profile("资产配置", "其他", alloc["other"])
                     if "strategy" in profile:
                         strat = profile["strategy"]
                         if strat.get("core_strategy"):
-                            self.update_investment_profile("投资策略", "核心策略", strat["core_strategy"])
+                            self.long_term.update_investment_profile("投资策略", "核心策略", strat["core_strategy"])
                         if strat.get("stop_loss"):
-                            self.update_investment_profile("投资策略", "止损策略", strat["stop_loss"])
+                            self.long_term.update_investment_profile("投资策略", "止损策略", strat["stop_loss"])
                         if strat.get("take_profit"):
-                            self.update_investment_profile("投资策略", "止盈策略", strat["take_profit"])
+                            self.long_term.update_investment_profile("投资策略", "止盈策略", strat["take_profit"])
                 
                 print("长期记忆更新完成！")
             else:
