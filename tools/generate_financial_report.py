@@ -170,7 +170,7 @@ def _param_analysis(user_requirement: str) -> Dict[str, Any]:
 
 
 def _chapter_analysis(user_requirement: str, tool_args: Dict[str, Any], data_type: str, analysis_prompt_template: str) -> str:
-    """生成损益表分析"""
+    """分析损益表、资产负债表、现金流量表，都使用company_performance工具，只是prompt不同"""
     from utils.utils import generate_text, _call_tool_async
     tool_args["data_type"] = data_type
     raw_information = asyncio.run(_call_tool_async("company_performance", tool_args))
