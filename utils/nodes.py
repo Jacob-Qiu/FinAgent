@@ -50,7 +50,7 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
     # 动态导入获取最新的history和summary
     from .memory import history, summary
 
-    # todo 定义可用的工具列表
+        # todo 定义可用的工具列表
     tool_candidates = [
         {"tool_name": "add", "description": "两数相加"},  # 后期移除
         {"tool_name": "stock_data", "description": "获取指定股票的历史行情数据"},
@@ -59,8 +59,8 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
         {"tool_name": "hot_news_7x24", "description": "获取7x24小时热门新闻"},
         {"tool_name": "get_current_time", "description": "获取当前时间工具"},
         {"tool_name": "retrieve_reports", "description": "研报检索工具"},
-        {"tool_name": "generate_financial_report", "description": "生成公司财务分析报告。若仅需生成报告则无需调用其他工具；但若用户有额外需求，仍需配合其他工具使用"},
-        {"tool_name": "generate_investment_report", "description": "生成股票投资组合报告"},
+        {"tool_name": "generate_financial_report", "description": "生成公司财务分析报告。**此工具会自动获取所需的所有数据**，包括历史行情、财务指标、新闻资讯等，无需先调用其他工具获取数据。"},
+        {"tool_name": "generate_investment_report", "description": "生成股票投资组合报告。**此工具会自动获取所需的所有数据**，包括股票数据、指数数据、财经新闻、热门新闻等，无需先调用其他工具获取数据。"},
         {"tool_name": "generate_markdown_report", "description": "生成其他类型（非公司财务、非投资）分析报告"},
     ]
 
@@ -72,7 +72,6 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
             3. 需要执行的操作
             4. 需要调用的工具
         对于每一步计划，需要判断是否需要调用工具：如果需要，则需要从tools_candidate中确定需要的工具名；若不需要，则输入"None"。
-        **第一步一定需要调用"get_current_time"工具，用于获取当前时间**。
         示例格式：
         [
             {{
@@ -83,6 +82,12 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
             }},
             ...
         ]
+
+        ## 注意事项
+        **重要规则：**
+        1. 第一步一定需要调用"get_current_time"工具，用于获取当前时间。
+        2. **如果需要生成公司财务分析报告（使用generate_financial_report工具），则调用完"get_current_time"后必须直接调用"generate_financial_report"工具，绝对不允许在中间调用其他任何工具获取数据。**
+        3. 因为"generate_financial_report"工具会自动获取所需的所有数据，包括历史行情、财务指标、新闻资讯等，无需先调用其他工具获取数据。
 
         ## 当前对话上下文
         {summary}
@@ -144,7 +149,7 @@ def execute_node(state: AgentState) -> Dict[str, Any]:
             用户原始需求: {user_input}
             前序步骤执行结果: {execution_summary}
 
-            请根据任务描述和原始需求，分析出调用该工具所需的参数。
+            请根据任务描述、原始需求以及前序步骤执行结果，分析出调用该工具所需的参数。
 
             ## 工具参数定义如下，"required"字段中表示必须的参数：
             {tool_schema}
@@ -258,6 +263,7 @@ def replan_node(state: AgentState) -> Dict[str, Any]:
             执行结果: {execution_results}
             
             请根据执行结果，直接回答用户的问题。答案应该是具体的、有针对性的。
+            如果调用了generate_investment_report工具，最终答案应该为该工具返回的投资方案信息以及报告的存储路径。
             
             只需输出最终答案，不需要解释过程。
         """

@@ -7,6 +7,8 @@ from typing import Dict, List, Any
 from langgraph.graph import StateGraph, END
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
+import threading
+import itertools
 
 from utils.nodes import AgentState, plan_node, execute_node, replan_node
 from utils.memory import (
@@ -198,58 +200,229 @@ class PlanExecuteAgent:
         root = tk.Tk()
         root.title("FinAgent 对话系统")
         root.geometry("800x600")
+        root.configure(bg="#f0f0f0")
         
-        # 创建聊天显示区域
-        chat_display = scrolledtext.ScrolledText(root, wrap=tk.WORD, width=80, height=25)
-        chat_display.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
-        chat_display.config(state=tk.DISABLED)
+        # 创建滚动区域
+        chat_scroll_frame = tk.Frame(root, bg="#f0f0f0")
+        chat_scroll_frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+        
+        # 创建画布和滚动条
+        canvas = tk.Canvas(chat_scroll_frame, bg="#f0f0f0", highlightthickness=0)
+        scrollbar = tk.Scrollbar(chat_scroll_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg="#f0f0f0")
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw", width=canvas.winfo_width())
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        def on_canvas_configure(event):
+            canvas.itemconfig(canvas.find_all()[0], width=event.width)
+        
+        canvas.bind("<Configure>", on_canvas_configure)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
         
         # 创建输入框架
-        input_frame = tk.Frame(root)
+        input_frame = tk.Frame(root, bg="#e0e0e0", height=60)
         input_frame.pack(padx=10, pady=5, fill=tk.X)
+        input_frame.pack_propagate(False)
         
         # 创建输入框
-        user_input = tk.Entry(input_frame, width=70)
-        user_input.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        user_input = tk.Entry(input_frame, font=("Microsoft YaHei", 11), bd=0, relief="flat")
+        user_input.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.X, expand=True)
+        
+        # 添加消息气泡的函数
+        def add_user_message(text):
+            msg_frame = tk.Frame(scrollable_frame, bg="#f0f0f0")
+            msg_frame.pack(fill=tk.X, pady=5)
+            
+            spacer = tk.Frame(msg_frame, bg="#f0f0f0", width=50)
+            spacer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            
+            bubble_frame = tk.Frame(msg_frame, bg="#f0f0f0")
+            bubble_frame.pack(side=tk.RIGHT, padx=10)
+            
+            bubble = tk.Label(
+                bubble_frame,
+                text=text,
+                wraplength=max(100, canvas.winfo_width() - 150),
+                bg="#d4edda",
+                fg="#155724",
+                font=("Microsoft YaHei", 11),
+                padx=15,
+                pady=10,
+                justify=tk.LEFT,
+                anchor="nw"
+            )
+            bubble.pack()
+            
+            root.update_idletasks()
+            canvas.yview_moveto(1.0)
+        
+        def add_ai_message(text):
+            msg_frame = tk.Frame(scrollable_frame, bg="#f0f0f0")
+            msg_frame.pack(fill=tk.X, pady=5)
+            
+            spacer = tk.Frame(msg_frame, bg="#f0f0f0", width=50)
+            spacer.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+            
+            bubble_frame = tk.Frame(msg_frame, bg="#f0f0f0")
+            bubble_frame.pack(side=tk.LEFT, padx=10)
+            
+            bubble = tk.Label(
+                bubble_frame,
+                text=text,
+                wraplength=max(100, canvas.winfo_width() - 150),
+                bg="#ffffff",
+                fg="#333333",
+                font=("Microsoft YaHei", 11),
+                padx=15,
+                pady=10,
+                justify=tk.LEFT,
+                anchor="nw",
+                bd=1,
+                relief="solid"
+            )
+            bubble.pack()
+            
+            root.update_idletasks()
+            canvas.yview_moveto(1.0)
+        
+        # 添加加载动画
+        loading_bubble = None
+        loading_label = None
+        loading_animation = None
+        
+        def show_loading():
+            """显示加载动画"""
+            nonlocal loading_bubble, loading_label, loading_animation
+            
+            msg_frame = tk.Frame(scrollable_frame, bg="#f0f0f0")
+            msg_frame.pack(fill=tk.X, pady=5)
+            
+            spacer = tk.Frame(msg_frame, bg="#f0f0f0", width=50)
+            spacer.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+            
+            bubble_frame = tk.Frame(msg_frame, bg="#f0f0f0")
+            bubble_frame.pack(side=tk.LEFT, padx=10)
+            
+            loading_label = tk.Label(
+                bubble_frame,
+                text="⏳ 思考中...",
+                bg="#ffffff",
+                fg="#666666",
+                font=("Microsoft YaHei", 11),
+                padx=15,
+                pady=10,
+                bd=1,
+                relief="solid"
+            )
+            loading_label.pack()
+            
+            loading_bubble = msg_frame
+            
+            root.update_idletasks()
+            canvas.yview_moveto(1.0)
+        
+        def animate_loading():
+            """动画效果：改变文字内容"""
+            nonlocal loading_animation
+            
+            dots = itertools.cycle(["⏳ 思考中.", "⏳ 思考中..", "⏳ 思考中..."])
+            
+            def update():
+                if loading_label and loading_label.winfo_exists():
+                    loading_label.config(text=next(dots))
+                    loading_animation = root.after(500, update)
+            
+            update()
+        
+        def hide_loading():
+            """隐藏加载动画"""
+            nonlocal loading_bubble, loading_animation
+            
+            if loading_animation:
+                root.after_cancel(loading_animation)
+                loading_animation = None
+            
+            if loading_bubble:
+                try:
+                    loading_bubble.destroy()
+                    loading_bubble = None
+                except:
+                    pass
         
         # 创建发送按钮
         def send_message():
             message = user_input.get().strip()
             if message:
                 # 显示用户消息
-                chat_display.config(state=tk.NORMAL)
-                chat_display.insert(tk.END, f"用户: {message}\n\n")
-                chat_display.config(state=tk.DISABLED)
+                add_user_message(message)
                 user_input.delete(0, tk.END)
                 
-                # 处理用户输入
-                try:
-                    result = self.run(message)
-                    final_answer = result.get('final_answer', '抱歉，我没有理解您的问题。')
-                    
-                    # 显示AI回复
-                    chat_display.config(state=tk.NORMAL)
-                    chat_display.insert(tk.END, f"AI助手: {final_answer}\n\n")
-                    chat_display.config(state=tk.DISABLED)
-                    chat_display.see(tk.END)
+                # 禁用输入框和按钮，防止重复提交
+                user_input.config(state=tk.DISABLED)
+                send_button.config(state=tk.DISABLED)
                 
-                except Exception as e:
-                    error_msg = f"处理请求时出现错误: {str(e)}"
-                    chat_display.config(state=tk.NORMAL)
-                    chat_display.insert(tk.END, f"系统: {error_msg}\n\n")
-                    chat_display.config(state=tk.DISABLED)
-                    messagebox.showerror("错误", error_msg)
+                # 显示加载动画
+                show_loading()
+                animate_loading()
+                
+                # 在后台线程中处理用户输入
+                def process_message():
+                    try:
+                        result = self.run(message)
+                        final_answer = result.get('final_answer', '抱歉，我没有理解您的问题。')
+                        
+                        # 在主线程中更新UI
+                        root.after(0, lambda: finish_with_result(final_answer))
+                    
+                    except Exception as e:
+                        error_msg = f"处理请求时出现错误: {str(e)}"
+                        root.after(0, lambda: finish_with_error(error_msg))
+                
+                def finish_with_result(text):
+                    hide_loading()
+                    add_ai_message(text)
+                    user_input.config(state=tk.NORMAL)
+                    send_button.config(state=tk.NORMAL)
+                
+                def finish_with_error(text):
+                    hide_loading()
+                    add_ai_message(f"系统提示: {text}")
+                    user_input.config(state=tk.NORMAL)
+                    send_button.config(state=tk.NORMAL)
+                    messagebox.showerror("错误", text)
+                
+                # 启动后台线程
+                thread = threading.Thread(target=process_message, daemon=True)
+                thread.start()
         
-        send_button = tk.Button(input_frame, text="发送", command=send_message)
-        send_button.pack(side=tk.RIGHT, padx=5)
+        send_button = tk.Button(
+            input_frame,
+            text="发送",
+            command=send_message,
+            font=("Microsoft YaHei", 10),
+            bg="#007bff",
+            fg="white",
+            activebackground="#0056b3",
+            activeforeground="white",
+            relief="flat",
+            padx=20,
+            pady=5
+        )
+        send_button.pack(side=tk.RIGHT, padx=10, pady=10)
         
         # 绑定回车键
         user_input.bind('<Return>', lambda event: send_message())
         
         # 显示欢迎信息
-        chat_display.config(state=tk.NORMAL)
-        chat_display.insert(tk.END, "欢迎使用FinAgent对话系统！\n请输入您的问题开始对话。\n\n")
-        chat_display.config(state=tk.DISABLED)
+        add_ai_message("欢迎使用FinAgent对话系统！\n请输入您的问题开始对话。")
         
         # 设置窗口关闭时的回调函数
         def on_closing():
