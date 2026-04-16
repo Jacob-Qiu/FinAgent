@@ -24,16 +24,8 @@ FinAgent是一个面向金融领域的LLM agent系统，支持实时数据查询
 FinAgent/
 ├── agent.py # 核心智能体逻辑：协调 RAG、工具调用与 LLM 生成
 │
+├── tool_schemas/ # 工具定义
 ├── tools/ # 工具模块
-│ ├── __init__.py
-│ ├── akshare_search.py
-│ ├── calculator.py
-│ ├── generate_financial_report.py
-│ ├── generate_investment_report.py
-│ ├── generate_report.py
-│ ├── get_current_time.py
-│ ├── report_retriever.py
-│ └── ...
 │
 ├── utils/ # 功能函数
 │ ├── __init__.py
@@ -43,25 +35,20 @@ FinAgent/
 │ ├── nodes.py # LangGraph节点
 │ ├── rag.py # RAG
 │ ├── utils.py # 其他
-│ └── ...
 │
 ├── llm/ # 大模型
 │ ├── __init__.py
 │ ├── gemini_client.py # gemini模型
 │ └── ollama_client.py # ollama模型
 │
-├── constants.py/ # 全局常量（TBC）
-│
-├── exceptions.py/ # 自定义异常（TBC）
-│
-├── data/
-│
 ├── pyproject.toml
 ├── uv.lock
 ├── .python-version
 ├── config.yml # 配置文件
 ├── README-en.md
-└── README-cn.md
+├── README.md
+├── start.bat # 启动脚本（Windows）
+└── start.sh # 启动脚本（Linux / macOS）
 ```
 
 ## 快速开始（使用 uv）
@@ -103,11 +90,23 @@ uv sync 会：
 ```bash
 # 安装
 npm install finance-mcp
-# 启动服务器
-npx -y finance-mcp-http
 ```
 
 ### 5. 启动服务
+
+#### 方式一：使用启动脚本（推荐）
+启动脚本会自动启动 FinanceMCP Server 和 FinAgent。
+
+- **Windows**: 双击 `start.bat`
+- **Linux / macOS**: 在终端运行 `./start.sh` 或 `bash start.sh`
+
+#### 方式二：手动启动
+如果需要分别启动各个服务，可以手动执行：
+
 ```bash
+# 1. 启动 FinanceMCP Server
+npx -y finance-mcp-http
+
+# 2. 在另一个终端启动 FinAgent
 uv run python agent.py
 ```
