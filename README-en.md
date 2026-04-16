@@ -23,16 +23,8 @@ The system adopts the Plan-and-Execute architecture:
 FinAgent/
 ├── agent.py # Core agent logic: coordinating rag, tool call and LLM generation
 │
+├── tool_schemas/ # Tool definitions
 ├── tools/ # Tool module
-│ ├── __init__.py
-│ ├── akshare_search.py
-│ ├── calculator.py
-│ ├── generate_financial_report.py
-│ ├── generate_investment_report.py
-│ ├── generate_report.py
-│ ├── get_current_time.py
-│ ├── report_retriever.py
-│ └── ...
 │
 ├── utils/ # Utility functions
 │ ├── __init__.py
@@ -42,25 +34,20 @@ FinAgent/
 │ ├── nodes.py # LangGraph nodes
 │ ├── rag.py # RAG
 │ ├── utils.py # other
-│ └── ...
 │
-├── llm/
+├── llm/ # LLM
 │ ├── __init__.py
 │ ├── gemini_client.py # gemini model
 │ └── ollama_client.py # ollama model
-│
-├── constants.py/ # Global constants（TBC）
-│
-├── exceptions.py/ # Exceptions（TBC）
-│
-├── data/
 │
 ├── pyproject.toml
 ├── uv.lock
 ├── .python-version
 ├── config.yml # Configuration file
 ├── README-en.md
-└── README-cn.md
+├── README.md
+├── start.bat # Startup script (Windows)
+└── start.sh # Startup script (Linux / macOS)
 ```
 
 ## Quick Start (uv)
@@ -110,6 +97,20 @@ npx -y finance-mcp-http
 ```
 
 ### 5. Start Service
+
+#### Method 1: Using Startup Script (Recommended)
+The startup script will automatically start the FinanceMCP Server and FinAgent.
+
+- **Windows**: Double-click `start.bat`
+- **Linux / macOS**: Run `./start.sh` or `bash start.sh` in terminal
+
+#### Method 2: Manual Start
+If you need to start each service separately, you can do it manually:
+
 ```bash
+# 1. Start FinanceMCP Server
+npx -y finance-mcp-http
+
+# 2. Start FinAgent in another terminal
 uv run python agent.py
 ```

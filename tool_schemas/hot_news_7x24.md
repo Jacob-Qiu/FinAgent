@@ -1,7 +1,7 @@
 {{
-    "description": "获取7x24小时热门新闻",
+    "description": "get hot news in 7x24 hours",
     "parameters": {{
-        "limit": {{"type": "int", "description": "返回的新闻数量"}}
+        "limit": {{"type": "int", "description": "number of news to return"}}
     }},
     "required": []
 }}

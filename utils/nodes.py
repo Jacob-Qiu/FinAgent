@@ -47,12 +47,11 @@ class AgentState:
 # Plan节点 - 生成执行计划
 def plan_node(state: AgentState) -> Dict[str, Any]:
     """生成执行计划"""
-    # 动态导入获取最新的history和summary
-    from .memory import history, summary
+    # 动态导入获取最新的context（包含工作记忆和相关的情景记忆）
+    from .memory import get_context
 
         # todo 定义可用的工具列表
     tool_candidates = [
-        {"tool_name": "add", "description": "两数相加"},  # 后期移除
         {"tool_name": "stock_data", "description": "获取指定股票的历史行情数据"},
         {"tool_name": "company_performance", "description": "获取指定公司的综合表现数据"},
         {"tool_name": "SearchFinancialNews", "description": "根据关键词和时间范围搜索财经资讯内容"},
@@ -99,10 +98,13 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
         {tool_candidates}
     """
 
+    # 获取包含工作记忆和情景记忆的上下文
+    context = get_context(state.user_input)
+    
     # 格式化提示文本
     prompt_text = prompt_template.format(
         user_input=state.user_input,
-        summary=summary,
+        summary=context,
         tool_candidates=tool_candidates
     )
     # 调用LLM生成计划
