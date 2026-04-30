@@ -24,7 +24,8 @@ except ImportError:
 # 尝试导入sentence-transformers，如果没有安装则使用简单的编码方式
 try:
     from sentence_transformers import SentenceTransformer
-    embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+    # 使用多语言模型以支持中文
+    embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
     has_embedding_model = True
 except ImportError:
     has_embedding_model = False
@@ -33,13 +34,11 @@ except ImportError:
 # 尝试导入rank_bm25进行混合检索
 try:
     from rank_bm25 import BM25Okapi
-    import nltk
-    from nltk.tokenize import word_tokenize
-    from nltk.corpus import stopwords
-    nltk.download('punkt', quiet=True)
-    nltk.download('stopwords', quiet=True)
+    # 使用jieba进行中文分词
+    import jieba
+    import jieba.analyse
     has_bm25 = True
-    print("已加载BM25检索")
+    print("已加载BM25检索（使用jieba中文分词）")
 except ImportError:
     has_bm25 = False
     print("警告: rank_bm25未安装，将使用简单的文本匹配")
@@ -309,15 +308,40 @@ class EpisodicMemory:
         """
         results = []
         
+        # 日期格式标准化：将各种格式的日期统一为 YYYY-MM-DD
+        normalized_query = self._normalize_date_format(query)
+        
         # 首先使用BM25检索
         if has_bm25:
-            bm25_results = self._search_bm25(query, top_k)
+            bm25_results = self._search_bm25(normalized_query, top_k)
             results.extend(bm25_results)
         
         # 然后使用向量检索
         if has_embedding_model:
-            vector_results = self._search_vector(query, top_k)
+            vector_results = self._search_vector(normalized_query, top_k)
             results.extend(vector_results)
+        
+        # 日期相关查询特殊处理：如果查询中包含日期关键词，增强相关记忆的得分
+        date_patterns = [
+            r'\d{4}[年\-\.]\d{1,2}[月\-\.]\d{1,2}[日]?',  # 2026.4.6, 2026-04-06, 2026年4月6日
+            r'\d{4}年',  # 2026年
+            r'\d{1,2}月\d{1,2}日',  # 4月6日
+        ]
+        has_date_query = any(re.search(pattern, query) for pattern in date_patterns)
+        
+        if has_date_query:
+            # 对包含日期的结果增加权重
+            for i, (content, score) in enumerate(results):
+                # 检查内容中是否也包含日期
+                if any(re.search(pattern, content) for pattern in date_patterns):
+                    results[i] = (content, score + 0.3)  # 增加权重
+        
+        # 增强关键词匹配：提取查询中的关键实体词（如公司名、商品名等）进行额外匹配
+        enhanced_results = self._keyword_enhance(query, results)
+        
+        # 将关键词增强的结果直接加入，并使用更高的权重
+        for content, score in enhanced_results:
+            results.append((content, score * 2.0))  # 关键词匹配结果加倍权重
         
         # 去重并排序
         unique_results = {}
@@ -328,18 +352,64 @@ class EpisodicMemory:
         sorted_results = sorted(unique_results.items(), key=lambda x: x[1], reverse=True)
         return sorted_results[:top_k]
     
-    def _search_bm25(self, query: str, top_k: int = 5) -> List[Tuple[str, float]]:
+    def _keyword_enhance(self, query: str, current_results: List[Tuple[str, float]]) -> List[Tuple[str, float]]:
         """
-        使用BM25搜索
+        通过关键词匹配增强检索结果
         
         Args:
-            query: 搜索查询
-            top_k: 返回的结果数量
+            query: 查询文本
+            current_results: 当前已有结果
             
         Returns:
-            相关记忆列表
+            增强后的结果列表
         """
-        # 读取所有情景记忆文件
+        enhanced = []
+        
+        # 提取查询中的关键实体（公司、股票、商品等）
+        # 常见模式：股票代码、证券名称、商品名称等
+        entity_patterns = [
+            r'[\u4e00-\u9fff]{2,10}(?:证券|银行|公司|股份|基金|集团|科技)',  # 中文公司（不包含能源，因为会误匹配）
+            r'\d{6}\.[A-Z]{2}',  # A股代码如 600109.SH
+            r'[A-Z]{4,10}',  # 英文股票代码
+            r'港股|A股|美股',
+        ]
+        
+        # 提取查询中的实体词
+        entities = []
+        for pattern in entity_patterns:
+            matches = re.findall(pattern, query)
+            entities.extend(matches)
+        
+        # 语义扩展：只扩展精确的类别词，避免歧义词
+        # 石油/能源类词汇必须单独出现，而不是作为"新能源"的一部分
+        if '贵金属' in query:
+            entities.extend(['黄金', '白银', '铂金', '钯金', '金价', '黄金走势'])
+        if '石油' in query or '原油' in query:
+            entities.extend(['石油', '原油', '布伦特', 'WTI'])
+        if '能源' in query and '新能源' not in query:
+            # 只有当查询包含"能源"但不包含"新能源"时才扩展
+            entities.extend(['石油', '原油', '天然气', '煤炭'])
+        
+        # 如果有实体词，在所有记忆中搜索包含这些实体的记录
+        if entities:
+            all_memories = self._get_all_memory_contents()
+            for content in all_memories:
+                # 检查是否包含查询中的实体
+                for entity in entities:
+                    if entity in content:
+                        # 使用非常高的分数确保关键词匹配优先
+                        enhanced.append((content, 10.0))
+                        break
+        
+        return enhanced
+    
+    def _get_all_memory_contents(self) -> List[str]:
+        """
+        获取所有情景记忆内容
+        
+        Returns:
+            所有记忆内容列表
+        """
         memory_contents = []
         for filename in os.listdir(self.episodic_path):
             if filename.endswith('.md'):
@@ -354,27 +424,74 @@ class EpisodicMemory:
                                 memory_contents.append(entry.strip())
                 except Exception as e:
                     print(f"读取 {filename} 失败: {e}")
+        return memory_contents
+    
+    def _normalize_date_format(self, text: str) -> str:
+        """
+        标准化日期格式，将各种格式统一为 YYYY-MM-DD
+        
+        Args:
+            text: 输入文本
+            
+        Returns:
+            标准化后的文本
+        """
+        # 匹配 2026.4.6 或 2026.04.06 格式
+        text = re.sub(r'(\d{4})[年\-\.](\d{1,2})[月\-\.](\d{1,2})日?', 
+                     lambda m: f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}", text)
+        return text
+    
+    def _search_bm25(self, query: str, top_k: int = 5) -> List[Tuple[str, float]]:
+        """
+        使用BM25搜索（支持中文分词和日期格式匹配）
+        
+        Args:
+            query: 搜索查询
+            top_k: 返回的结果数量
+            
+        Returns:
+            相关记忆列表
+        """
+        # 读取所有情景记忆文件
+        memory_contents = []
+        memory_dates = []  # 保存每个记忆对应的日期
+        for filename in os.listdir(self.episodic_path):
+            if filename.endswith('.md'):
+                file_path = os.path.join(self.episodic_path, filename)
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        # 分割为记忆条目
+                        entries = re.split(r'## 记忆条目', content)
+                        for entry in entries:
+                            if entry.strip():
+                                memory_contents.append(entry.strip())
+                                # 从文件名提取日期
+                                date_match = re.search(r'(\d{4}-\d{2}-\d{2})', filename)
+                                memory_dates.append(date_match.group(1) if date_match else "")
+                except Exception as e:
+                    print(f"读取 {filename} 失败: {e}")
         
         if not memory_contents:
             return []
         
-        # 预处理文本
-        stop_words = set()
-        if has_bm25:
-            try:
-                stop_words = set(stopwords.words('chinese') + stopwords.words('english'))
-            except:
-                pass
+        # 标准化查询中的日期格式
+        normalized_query = self._normalize_date_in_text(query)
         
+        # 预处理文本 - 使用jieba进行中文分词
         tokenized_corpus = []
         for content in memory_contents:
             tokens = []
             if has_bm25:
                 try:
-                    tokens = word_tokenize(content.lower())
-                    tokens = [token for token in tokens if token not in stop_words and token.isalnum()]
-                except:
-                    pass
+                    # 使用jieba精确模式分词
+                    tokens = jieba.lcut(content.lower())
+                    # 过滤短字符
+                    tokens = [token for token in tokens if len(token) > 1]
+                except Exception as e:
+                    print(f"jieba分词失败: {e}")
+                    # 回退到简单分词
+                    tokens = [t for t in re.findall(r'[\u4e00-\u9fff]+|[a-zA-Z]+', content.lower()) if len(t) > 1]
             tokenized_corpus.append(tokens)
         
         # 构建BM25模型
@@ -392,33 +509,108 @@ class EpisodicMemory:
                 query_tokens = []
                 if has_bm25:
                     try:
-                        query_tokens = word_tokenize(query.lower())
-                        query_tokens = [token for token in query_tokens if token not in stop_words and token.isalnum()]
-                    except:
-                        pass
+                        # 使用jieba对查询进行分词
+                        query_tokens = jieba.lcut(normalized_query.lower())
+                        # 过滤短字符
+                        query_tokens = [token for token in query_tokens if len(token) > 1]
+                    except Exception as e:
+                        print(f"jieba分词查询失败: {e}")
+                        # 回退到简单分词
+                        query_tokens = [t for t in re.findall(r'[\u4e00-\u9fff]+|[a-zA-Z]+', normalized_query.lower()) if len(t) > 1]
                 scores = bm25.get_scores(query_tokens)
                 
                 # 排序并返回结果
                 for i, score in enumerate(scores):
                     if score > 0:
-                        results.append((memory_contents[i], score))
+                        results.append((memory_contents[i], score, memory_dates[i]))
             except Exception as e:
                 print(f"BM25搜索失败: {e}")
         
         # 如果BM25失败，使用简单文本匹配
         if not results:
-            for content in memory_contents:
+            for i, content in enumerate(memory_contents):
                 similarity = 0.0
-                if query.lower() in content.lower():
+                if normalized_query.lower() in content.lower():
                     similarity = 0.8
-                elif any(keyword in content.lower() for keyword in query.lower().split()):
+                elif any(keyword in content.lower() for keyword in normalized_query.lower().split()):
                     similarity = 0.5
                 
                 if similarity > 0:
-                    results.append((content, similarity))
+                    results.append((content, similarity, memory_dates[i]))
+        
+        # 日期匹配增强：检查查询中是否包含日期，并提升匹配度
+        query_date_patterns = self._extract_date_patterns(query)
+        if query_date_patterns:
+            enhanced_results = []
+            for content, score, date in results:
+                # 如果记忆日期与查询中的日期匹配，提升分数
+                for pattern in query_date_patterns:
+                    if pattern in content or pattern in date:
+                        score += 0.3  # 日期匹配加分
+                        break
+                enhanced_results.append((content, score))
+            results = enhanced_results
+        else:
+            results = [(content, score) for content, score, _ in results]
         
         results.sort(key=lambda x: x[1], reverse=True)
         return results[:top_k]
+    
+    def _normalize_date_in_text(self, text: str) -> str:
+        """
+        标准化文本中的日期格式，便于检索匹配
+        
+        Args:
+            text: 输入文本
+            
+        Returns:
+            标准化后的文本
+        """
+        # 处理 "2026.4.6" -> "2026-04-06"
+        text = re.sub(r'(\d{4})\.(\d{1,2})\.(\d{1,2})', 
+                      lambda m: f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}", text)
+        
+        # 处理 "2026年4月6日" -> "2026-04-06"
+        text = re.sub(r'(\d{4})年(\d{1,2})月(\d{1,2})日',
+                      lambda m: f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}", text)
+        
+        return text
+    
+    def _extract_date_patterns(self, text: str) -> List[str]:
+        """
+        从文本中提取各种格式的日期模式
+        
+        Args:
+            text: 输入文本
+            
+        Returns:
+            日期模式列表
+        """
+        patterns = []
+        
+        # 提取 "2026.4.6" 格式
+        dot_patterns = re.findall(r'\d{4}\.\d{1,2}\.\d{1,2}', text)
+        for p in dot_patterns:
+            # 转换为标准格式
+            match = re.match(r'(\d{4})\.(\d{1,2})\.(\d{1,2})', p)
+            if match:
+                normalized = f"{match.group(1)}-{int(match.group(2)):02d}-{int(match.group(3)):02d}"
+                patterns.append(normalized)
+                patterns.append(p)  # 保留原格式
+        
+        # 提取 "2026-04-06" 格式
+        dash_patterns = re.findall(r'\d{4}-\d{2}-\d{2}', text)
+        patterns.extend(dash_patterns)
+        
+        # 提取 "2026年4月6日" 格式
+        chinese_patterns = re.findall(r'\d{4}年\d{1,2}月\d{1,2}日', text)
+        for p in chinese_patterns:
+            match = re.match(r'(\d{4})年(\d{1,2})月(\d{1,2})日', p)
+            if match:
+                normalized = f"{match.group(1)}-{int(match.group(2)):02d}-{int(match.group(3)):02d}"
+                patterns.append(normalized)
+        
+        return patterns
     
     def _search_vector(self, query: str, top_k: int = 5) -> List[Tuple[str, float]]:
         """
@@ -981,38 +1173,38 @@ class MemoryManager:
                     if "investment_style" in prefs:
                         style = prefs["investment_style"]
                         if style.get("type"):
-                            self.update_preference("投资风格", "类型", style["type"])
+                            self.long_term.update_preference("投资风格", "类型", style["type"])
                         if style.get("risk_tolerance"):
-                            self.update_preference("投资风格", "风险承受能力", style["risk_tolerance"])
+                            self.long_term.update_preference("投资风格", "风险承受能力", style["risk_tolerance"])
                         if style.get("investment_horizon"):
-                            self.update_preference("投资风格", "投资期限", style["investment_horizon"])
+                            self.long_term.update_preference("投资风格", "投资期限", style["investment_horizon"])
                     if "info_preferences" in prefs:
                         info = prefs["info_preferences"]
                         if info.get("detail_level"):
-                            self.update_preference("信息偏好", "详细程度", info["detail_level"])
+                            self.long_term.update_preference("信息偏好", "详细程度", info["detail_level"])
                         if info.get("focus_areas"):
-                            self.update_preference("信息偏好", "关注重点", info["focus_areas"])
+                            self.long_term.update_preference("信息偏好", "关注重点", info["focus_areas"])
                         if info.get("dislikes"):
-                            self.update_preference("信息偏好", "不喜欢", info["dislikes"])
+                            self.long_term.update_preference("信息偏好", "不喜欢", info["dislikes"])
                     if "industry_preferences" in prefs:
                         industry = prefs["industry_preferences"]
                         if industry.get("focus_industries"):
-                            self.update_preference("行业偏好", "重点关注", industry["focus_industries"])
+                            self.long_term.update_preference("行业偏好", "重点关注", industry["focus_industries"])
                         if industry.get("avoid_industries"):
-                            self.update_preference("行业偏好", "避免行业", industry["avoid_industries"])
+                            self.long_term.update_preference("行业偏好", "避免行业", industry["avoid_industries"])
                 
                 # 更新关注列表
                 if "watchlist" in data:
                     watchlist = data["watchlist"]
                     for stock in watchlist.get("stocks", []):
                         if stock:
-                            self.add_to_watchlist("股票", stock)
+                            self.long_term.add_to_watchlist("股票", stock)
                     for company in watchlist.get("companies", []):
                         if company:
-                            self.add_to_watchlist("公司", company)
+                            self.long_term.add_to_watchlist("公司", company)
                     for industry in watchlist.get("industries", []):
                         if industry:
-                            self.add_to_watchlist("行业", industry)
+                            self.long_term.add_to_watchlist("行业", industry)
                 
                 # 更新投资档案
                 if "investment_profile" in data:
@@ -1020,27 +1212,27 @@ class MemoryManager:
                     if "goals" in profile:
                         goals = profile["goals"]
                         if goals.get("long_term"):
-                            self.update_investment_profile("投资目标", "长期目标", goals["long_term"])
+                            self.long_term.update_investment_profile("投资目标", "长期目标", goals["long_term"])
                         if goals.get("short_term"):
-                            self.update_investment_profile("投资目标", "短期目标", goals["short_term"])
+                            self.long_term.update_investment_profile("投资目标", "短期目标", goals["short_term"])
                     if "allocation" in profile:
                         alloc = profile["allocation"]
                         if alloc.get("stock_ratio"):
-                            self.update_investment_profile("资产配置", "股票占比", alloc["stock_ratio"])
+                            self.long_term.update_investment_profile("资产配置", "股票占比", alloc["stock_ratio"])
                         if alloc.get("bond_ratio"):
-                            self.update_investment_profile("资产配置", "债券占比", alloc["bond_ratio"])
+                            self.long_term.update_investment_profile("资产配置", "债券占比", alloc["bond_ratio"])
                         if alloc.get("cash_ratio"):
-                            self.update_investment_profile("资产配置", "现金占比", alloc["cash_ratio"])
+                            self.long_term.update_investment_profile("资产配置", "现金占比", alloc["cash_ratio"])
                         if alloc.get("other"):
-                            self.update_investment_profile("资产配置", "其他", alloc["other"])
+                            self.long_term.update_investment_profile("资产配置", "其他", alloc["other"])
                     if "strategy" in profile:
                         strat = profile["strategy"]
                         if strat.get("core_strategy"):
-                            self.update_investment_profile("投资策略", "核心策略", strat["core_strategy"])
+                            self.long_term.update_investment_profile("投资策略", "核心策略", strat["core_strategy"])
                         if strat.get("stop_loss"):
-                            self.update_investment_profile("投资策略", "止损策略", strat["stop_loss"])
+                            self.long_term.update_investment_profile("投资策略", "止损策略", strat["stop_loss"])
                         if strat.get("take_profit"):
-                            self.update_investment_profile("投资策略", "止盈策略", strat["take_profit"])
+                            self.long_term.update_investment_profile("投资策略", "止盈策略", strat["take_profit"])
                 
                 print("长期记忆更新完成！")
             else:

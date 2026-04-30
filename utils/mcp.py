@@ -7,7 +7,6 @@ import yaml
 import os
 
 from .config import load_config
-from tools.calculator import add as _add
 from tools.get_current_time import get_current_time as _get_current_time
 from tools.report_retriever import retrieve_reports as _retrieve_reports
 from tools.generate_financial_report import generate_financial_report as _generate_financial_report
@@ -24,11 +23,6 @@ _qieman_mcp_client = None
 def create_local_mcp_server() -> FastMCP:
     """创建并配置FastMCP服务器"""
     mcp_local_server = FastMCP("FinAgent_local_MCP_Server")
-    
-    @mcp_local_server.tool()
-    def add(add1: int, add2: int) -> str:
-        result = _add(add1, add2)
-        return str(result)
 
     @mcp_local_server.tool()
     def get_current_time(time_format: str = "standard") -> str:
@@ -46,25 +40,8 @@ def create_local_mcp_server() -> FastMCP:
         return str(data)
 
     @mcp_local_server.tool()
-    def generate_investment_report(
-        user_requirement: str,
-        stock_data: str,
-        index_data: str,
-        financial_news: str,
-        hot_news_7x24: str,
-        rag_content: str,
-        save_to_file: bool = True,
-        file_path: str = None) -> str:
-        data = _generate_investment_report(
-            user_requirement,
-            stock_data,
-            index_data,
-            financial_news,
-            hot_news_7x24,
-            rag_content,
-            save_to_file=save_to_file,
-            file_path=file_path
-        )
+    def generate_investment_report(user_requirement: str, save_to_file: bool = True, file_path: str = None) -> str:
+        data = _generate_investment_report(user_requirement, save_to_file=save_to_file, file_path=file_path)
         return str(data)
 
     @mcp_local_server.tool()
