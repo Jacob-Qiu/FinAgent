@@ -1,0 +1,45 @@
+default_llm_provider: gemini
+
+gemini:
+  api_key: ""
+  model: "gemini-2.5-flash"
+
+ollama:
+  base_url: "http://localhost:11434/api/chat"
+  model: "qwen3"
+
+data_sources:
+  tushare:
+    token: ""
+  finnhub:
+    api_key: ""
+  qieman:
+    url: ""
+
+storage:
+  market_data_dir: "data/market_data"
+  kb_dir: "kb"
+
+knowledge_base:
+  sources:
+    raw_reports_dir: "kb/raw_reports"
+    raw_filings_dir: "kb/raw_filings"
+    raw_encyclopedia_dir: "kb/raw_encyclopedia"
+    raw_glossary_dir: "kb/raw_glossary"
+  qdrant:
+    path: "kb/qdrant"
+    url: ""
+    api_key: ""
+    collection_name: "finagent_kb"
+  embedding:
+    model: "BAAI/bge-m3"
+    batch_size: 32
+  chunking:
+    report_chunk_tokens: 700
+    report_chunk_overlap: 120
+    filing_chunk_tokens: 800
+    filing_chunk_overlap: 120
+    encyclopedia_chunk_tokens: 500
+    encyclopedia_chunk_overlap: 80
+    glossary_chunk_tokens: 256
+    glossary_chunk_overlap: 32
