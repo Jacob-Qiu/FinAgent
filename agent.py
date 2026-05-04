@@ -8,9 +8,11 @@ from langgraph.graph import StateGraph, END
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
 import threading
+import queue
 import itertools
 
 from utils.nodes import AgentState, plan_node, execute_node, replan_node
+from utils.config import load_config
 from utils.memory import (
     history, summary, update_summary,
     add_message, transfer_memory, get_context, save_unsaved_memory
@@ -196,6 +198,17 @@ class PlanExecuteAgent:
 
     def start_conversation(self):
         """启动多轮对话界面"""
+        config = load_config()
+        provider = str(config.get("llm_provider", "ollama")).strip().lower()
+        model_name = ""
+        if provider == "gemini":
+            model_name = str(config.get("gemini", {}).get("model", "")).strip()
+        elif provider == "openrouter":
+            model_name = str(config.get("openrouter", {}).get("model", "")).strip()
+        else:
+            model_name = str(config.get("ollama", {}).get("model", "")).strip()
+        print(f"当前LLM路径: {provider}" + (f" / {model_name}" if model_name else ""))
+
         # 创建主窗口
         root = tk.Tk()
         root.title("FinAgent 对话系统")
@@ -297,6 +310,8 @@ class PlanExecuteAgent:
         loading_bubble = None
         loading_label = None
         loading_animation = None
+        result_queue = queue.Queue()
+        polling_job = None
         
         def show_loading():
             """显示加载动画"""
@@ -356,9 +371,39 @@ class PlanExecuteAgent:
                     loading_bubble = None
                 except:
                     pass
-        
+
+        def finish_with_result(text):
+            hide_loading()
+            add_ai_message(text)
+            user_input.config(state=tk.NORMAL)
+            send_button.config(state=tk.NORMAL)
+
+        def finish_with_error(text):
+            hide_loading()
+            add_ai_message(f"系统提示: {text}")
+            user_input.config(state=tk.NORMAL)
+            send_button.config(state=tk.NORMAL)
+            messagebox.showerror("错误", text)
+
+        def poll_result_queue():
+            """主线程轮询后台结果，避免 worker 直接操作 Tk。"""
+            nonlocal polling_job
+
+            try:
+                payload = result_queue.get_nowait()
+            except queue.Empty:
+                polling_job = root.after(100, poll_result_queue)
+                return
+
+            polling_job = None
+            if payload.get("kind") == "result":
+                finish_with_result(payload.get("text", ""))
+            else:
+                finish_with_error(payload.get("text", "处理请求时出现错误"))
+
         # 创建发送按钮
         def send_message():
+            nonlocal polling_job
             message = user_input.get().strip()
             if message:
                 # 显示用户消息
@@ -378,30 +423,17 @@ class PlanExecuteAgent:
                     try:
                         result = self.run(message)
                         final_answer = result.get('final_answer', '抱歉，我没有理解您的问题。')
-                        
-                        # 在主线程中更新UI
-                        root.after(0, lambda: finish_with_result(final_answer))
+                        result_queue.put({"kind": "result", "text": final_answer})
                     
                     except Exception as e:
                         error_msg = f"处理请求时出现错误: {str(e)}"
-                        root.after(0, lambda: finish_with_error(error_msg))
-                
-                def finish_with_result(text):
-                    hide_loading()
-                    add_ai_message(text)
-                    user_input.config(state=tk.NORMAL)
-                    send_button.config(state=tk.NORMAL)
-                
-                def finish_with_error(text):
-                    hide_loading()
-                    add_ai_message(f"系统提示: {text}")
-                    user_input.config(state=tk.NORMAL)
-                    send_button.config(state=tk.NORMAL)
-                    messagebox.showerror("错误", text)
+                        result_queue.put({"kind": "error", "text": error_msg})
                 
                 # 启动后台线程
                 thread = threading.Thread(target=process_message, daemon=True)
                 thread.start()
+                if polling_job is None:
+                    polling_job = root.after(100, poll_result_queue)
         
         send_button = tk.Button(
             input_frame,

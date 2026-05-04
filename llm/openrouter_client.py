@@ -37,7 +37,7 @@ def openrouter_chat(
     openrouter_config = config.get("openrouter", {})
     api_key = openrouter_config.get("api_key") or os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
-        return "错误: 未配置 OpenRouter API Key。请设置 OPENROUTER_API_KEY 或 config.local.yml 的 openrouter.api_key。"
+        return "错误: 未配置 OpenRouter API Key。请设置 OPENROUTER_API_KEY 或 config.yml 的 openrouter.api_key。"
 
     model = (
         model_name

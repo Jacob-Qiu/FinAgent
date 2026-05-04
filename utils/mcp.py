@@ -9,9 +9,13 @@ import os
 from .config import load_config
 from tools.get_current_time import get_current_time as _get_current_time
 from tools.report_retriever import retrieve_reports as _retrieve_reports
+from tools.filing_retriever import retrieve_filings as _retrieve_filings
 from tools.generate_financial_report import generate_financial_report as _generate_financial_report
 from tools.generate_investment_report import generate_investment_report as _generate_investment_report
 from tools.generate_report import generate_markdown_report as _generate_markdown_report
+from tools.hot_news_7x24 import hot_news_7x24 as _hot_news_7x24
+from tools.market_data_snapshot import market_data_snapshot as _market_data_snapshot
+from tools.realtime_quote import realtime_quote as _realtime_quote
 
 
 # 自定义MCP客户端
@@ -33,7 +37,43 @@ def create_local_mcp_server() -> FastMCP:
     def retrieve_reports(query: str, n_results: int = 5, filters: dict = None) -> str:
         data = _retrieve_reports(query, n_results, filters)
         return str(data)
+
+    @mcp_local_server.tool()
+    def retrieve_filings(query: str, n_results: int = 5, filters: dict = None) -> str:
+        data = _retrieve_filings(query, n_results, filters)
+        return str(data)
+
+    @mcp_local_server.tool()
+    def market_data_snapshot(
+        query: str,
+        market_type: str = None,
+        interval: str = "daily",
+        as_of_date: str = None,
+        lookback_rows: int = 120,
+        include_raw_tail: bool = False,
+        tail_rows: int = 5,
+    ) -> str:
+        data = _market_data_snapshot(
+            query,
+            market_type=market_type,
+            interval=interval,
+            as_of_date=as_of_date,
+            lookback_rows=lookback_rows,
+            include_raw_tail=include_raw_tail,
+            tail_rows=tail_rows,
+        )
+        return str(data)
+
+    @mcp_local_server.tool()
+    def realtime_quote(query: str, market_type: str = None, include_raw: bool = False) -> str:
+        data = _realtime_quote(query, market_type=market_type, include_raw=include_raw)
+        return str(data)
     
+    @mcp_local_server.tool()
+    def hot_news_7x24(limit: int = 10) -> str:
+        data = _hot_news_7x24(limit)
+        return str(data)
+
     @mcp_local_server.tool()
     def generate_financial_report(user_requirement: str, save_to_file: bool = True, file_path: str = None) -> str:
         data = _generate_financial_report(user_requirement, save_to_file=save_to_file, file_path=file_path)

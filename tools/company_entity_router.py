@@ -194,6 +194,11 @@ def canonical_ticker(value: Any) -> str:
     upper_ticker = ticker.upper()
     if upper_ticker in alias_map:
         return upper_ticker
+    ashare_match = re.fullmatch(r"(\d{6})\.(?:SZ|SH)", upper_ticker)
+    if ashare_match:
+        base_ticker = ashare_match.group(1)
+        if base_ticker in alias_map:
+            return base_ticker
     for symbol, entry in alias_map.items():
         aliases = entry.get("aliases") or []
         if any(str(alias).strip().lower() == ticker.lower() for alias in aliases):

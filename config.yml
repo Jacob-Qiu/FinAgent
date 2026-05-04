@@ -1,8 +1,14 @@
-llm_provider: ollama  # options: ollama, gemini
+llm_provider: openrouter  # options: ollama, gemini, openrouter
 
 gemini:
   api_key: 
   model:
+
+openrouter:
+  api_key: ""
+  model: "deepseek/deepseek-v4-flash"
+  base_url: "https://openrouter.ai/api/v1"
+  timeout_seconds: 60
 
 ollama:
   base_url: http://localhost:11434/api/chat
