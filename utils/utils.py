@@ -14,9 +14,9 @@ from .mcp import get_local_mcp_client
 config = load_config()
 
 # todo 随时更新工具
-local_mcp_tools = {"add", "get_current_time", "retrieve_reports", "generate_financial_report", "generate_investment_report", "generate_markdown_report"}
+local_mcp_tools = {"add", "get_current_time", "retrieve_reports", "retrieve_filings", "market_data_snapshot", "realtime_quote", "hot_news_7x24", "generate_financial_report", "generate_investment_report", "generate_markdown_report"}
 qieman_mcp_tools = {"SearchFinancialNews"}
-finmcp_mcp_tools = {"stock_data", "index_data", "company_performance", "hot_news_7x24"}
+finmcp_mcp_tools = {"stock_data", "index_data", "company_performance"}
 
 
 
@@ -37,8 +37,26 @@ async def _call_tool_async(tool_name: str, args: Dict[str, Any]) -> str:
         async with sse_client(MCP_URL) as (read, write):
             async with ClientSession(read, write) as session:
                 response = await session.call_tool(tool_name, args)
-                result = json.loads(response.content[0].text)
-        return result
+                raw_text = response.content[0].text if response.content else ""
+
+        try:
+            raw_result = json.loads(raw_text)
+        except Exception:
+            raw_result = raw_text
+
+        if tool_name == "SearchFinancialNews":
+            from tools.news_briefing import summarize_financial_news_for_agent
+
+            return summarize_financial_news_for_agent(
+                raw_result,
+                keyword=str(args.get("keyword", "")).strip(),
+                start_date=str(args.get("startDate", "")).strip() or None,
+                end_date=str(args.get("endDate", "")).strip() or None,
+                page=args.get("page"),
+                page_size=args.get("pageSize"),
+            )
+
+        return raw_result
 
     elif tool_name in finmcp_mcp_tools:
         # 远程 FinanceMCP 服务器调用工具
@@ -107,17 +125,16 @@ def parse_tool_call(command: str) -> tuple[str, dict]:
 def generate_text(prompt: str) -> str:
     """调用LLM模型生成文本"""
     # 重新加载配置以获取最新的provider设置
-    provider = config.get("llm_provider", "ollama")
-    
+    provider = str(config.get("llm_provider", "ollama")).strip().lower()
+
     if provider == "gemini":
         from llm.gemini_client import gemini_chat
         return gemini_chat(prompt)
+    if provider == "openrouter":
+        from llm.openrouter_client import openrouter_chat
+        return openrouter_chat(prompt)
     else:
         # 默认使用Ollama
         from llm.ollama_client import ollama_chat
         messages = [{"role": "user", "content": prompt}]
         return ollama_chat(messages)
-
-
-
-

@@ -11,25 +11,29 @@ import re
 import sqlite3
 from utils.utils import generate_text
 
-# 尝试导入Chroma，如果没有安装则使用简单的相似度计算
-try:
-    import chromadb
-    from chromadb.config import Settings
-    has_chroma = True
-    print("已加载Chroma向量数据库")
-except ImportError:
-    has_chroma = False
-    print("警告: Chroma未安装，将使用简单的记忆存储")
+# 按需加载 sentence-transformers，避免启动时就初始化嵌入模型
+_embedding_model = None
+_embedding_model_name = "paraphrase-multilingual-MiniLM-L12-v2"
 
-# 尝试导入sentence-transformers，如果没有安装则使用简单的编码方式
-try:
-    from sentence_transformers import SentenceTransformer
-    # 使用多语言模型以支持中文
-    embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-    has_embedding_model = True
-except ImportError:
-    has_embedding_model = False
-    print("警告: sentence-transformers未安装，将使用简单的编码方式")
+
+def _get_embedding_model():
+    global _embedding_model
+    if _embedding_model is not None:
+        return _embedding_model
+    try:
+        from sentence_transformers import SentenceTransformer
+        _embedding_model = SentenceTransformer(_embedding_model_name)
+        return _embedding_model
+    except ImportError:
+        print("警告: sentence-transformers未安装，将使用简单的编码方式")
+        return None
+
+
+def _encode_embedding(text: str):
+    model = _get_embedding_model()
+    if model is None:
+        return None
+    return model.encode(text)
 
 # 尝试导入rank_bm25进行混合检索
 try:
@@ -244,12 +248,11 @@ class EpisodicMemory:
             metadata: 元数据
             timestamp: 时间戳
         """
-        if not has_embedding_model:
-            return
-        
         try:
             # 生成嵌入
-            embedding = embedding_model.encode(content)
+            embedding = _encode_embedding(content)
+            if embedding is None:
+                return
             embedding_blob = embedding.tobytes()
             
             # 存储到SQLite
@@ -317,7 +320,7 @@ class EpisodicMemory:
             results.extend(bm25_results)
         
         # 然后使用向量检索
-        if has_embedding_model:
+        if _get_embedding_model() is not None:
             vector_results = self._search_vector(normalized_query, top_k)
             results.extend(vector_results)
         
@@ -627,10 +630,11 @@ class EpisodicMemory:
         
         try:
             # 生成查询向量
-            if not has_embedding_model:
+            query_embedding_model = _get_embedding_model()
+            if query_embedding_model is None:
                 return results
             
-            query_embedding = embedding_model.encode(query)
+            query_embedding = query_embedding_model.encode(query)
             
             # 从SQLite读取所有嵌入
             conn = sqlite3.connect(self.vector_db_path)

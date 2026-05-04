@@ -1,0 +1,265 @@
+# Company alias map generated from kb/stock_universe.yaml.
+# Top-level keys are the canonical ticker symbols used in KB payload filters.
+
+NVDA:
+  market: us
+  name: NVIDIA
+  theme: AI_and_cloud_giants
+  aliases: ["NVDA", "英伟达", "辉达", "NVIDIA", "Nvidia", "英伟达公司"]
+MSFT:
+  market: us
+  name: Microsoft
+  theme: AI_and_cloud_giants
+  aliases: ["MSFT", "微软", "微软公司", "Microsoft", "Microsoft Corporation"]
+GOOGL:
+  market: us
+  name: Alphabet
+  theme: AI_and_cloud_giants
+  aliases: ["GOOGL", "谷歌", "谷歌母公司", "Google", "Alphabet", "Alphabet Inc."]
+AMZN:
+  market: us
+  name: Amazon
+  theme: AI_and_cloud_giants
+  aliases: ["AMZN", "亚马逊", "Amazon", "Amazon.com", "Amazon.com Inc."]
+META:
+  market: us
+  name: Meta
+  theme: AI_and_cloud_giants
+  aliases: ["META", "Meta", "Meta Platforms", "Facebook", "脸书", "Meta平台"]
+AAPL:
+  market: us
+  name: Apple
+  theme: AI_and_cloud_giants
+  aliases: ["AAPL", "苹果", "苹果公司", "Apple", "Apple Inc."]
+TSLA:
+  market: us
+  name: Tesla
+  theme: AI_and_cloud_giants
+  aliases: ["TSLA", "特斯拉", "Tesla", "Tesla Inc."]
+AVGO:
+  market: us
+  name: Broadcom
+  theme: semiconductors
+  aliases: ["AVGO", "博通", "Broadcom", "Broadcom Inc."]
+AMD:
+  market: us
+  name: AMD
+  theme: semiconductors
+  aliases: ["AMD", "超威半导体", "Advanced Micro Devices"]
+ASML:
+  market: us
+  name: ASML
+  theme: semiconductors
+  aliases: ["ASML", "阿斯麦", "ASML Holding"]
+MRVL:
+  market: us
+  name: Marvell
+  theme: semiconductors
+  aliases: ["MRVL", "迈威尔", "美满电子", "Marvell", "Marvell Technology"]
+RKLB:
+  market: us
+  name: Rocket Lab
+  theme: aerospace_and_satellite
+  aliases: ["RKLB", "Rocket Lab", "Rocket Lab USA", "火箭实验室"]
+LUNR:
+  market: us
+  name: Intuitive Machines
+  theme: aerospace_and_satellite
+  aliases: ["LUNR", "Intuitive Machines", "直觉机器", "直觉机器公司"]
+ASTS:
+  market: us
+  name: AST SpaceMobile
+  theme: aerospace_and_satellite
+  aliases: ["ASTS", "AST SpaceMobile", "太空移动", "AST SpaceMobile公司"]
+JPM:
+  market: us
+  name: JPMorgan
+  theme: financials
+  aliases: ["JPM", "摩根大通", "JPMorgan", "JPMorgan Chase", "小摩"]
+GS:
+  market: us
+  name: Goldman Sachs
+  theme: financials
+  aliases: ["GS", "高盛", "Goldman Sachs", "Goldman Sachs Group"]
+V:
+  market: us
+  name: Visa
+  theme: financials
+  aliases: ["V", "Visa", "维萨", "Visa Inc.", "威士"]
+PLTR:
+  market: us
+  name: Palantir
+  theme: software_and_applications
+  aliases: ["PLTR", "Palantir", "Palantir Technologies", "帕兰蒂尔"]
+CRM:
+  market: us
+  name: Salesforce
+  theme: software_and_applications
+  aliases: ["CRM", "Salesforce", "Salesforce.com", "赛富时", "Salesforce公司"]
+
+"688981":
+  market: cn
+  name: 中芯国际
+  theme: semiconductors
+  aliases: ["688981", "中芯国际", "中芯", "SMIC", "Semiconductor Manufacturing International"]
+"002371":
+  market: cn
+  name: 北方华创
+  theme: semiconductors
+  aliases: ["002371", "北方华创", "北方华创科技", "NAURA"]
+"603501":
+  market: cn
+  name: 韦尔股份
+  theme: semiconductors
+  aliases: ["603501", "韦尔股份", "韦尔", "豪威", "Will Semiconductor", "OmniVision"]
+"688041":
+  market: cn
+  name: 海光信息
+  theme: semiconductors
+  aliases: ["688041", "海光信息", "海光", "Hygon"]
+"603986":
+  market: cn
+  name: 兆易创新
+  theme: semiconductors
+  aliases: ["603986", "兆易创新", "兆易", "GigaDevice"]
+"601138":
+  market: cn
+  name: 工业富联
+  theme: ai_hardware
+  aliases: ["601138", "工业富联", "富士康工业互联网", "FII", "Foxconn Industrial Internet"]
+"002415":
+  market: cn
+  name: 海康威视
+  theme: ai_hardware
+  aliases: ["002415", "海康威视", "海康", "Hikvision"]
+"002475":
+  market: cn
+  name: 立讯精密
+  theme: ai_hardware
+  aliases: ["002475", "立讯精密", "立讯", "Luxshare", "Luxshare Precision"]
+"300308":
+  market: cn
+  name: 中际旭创
+  theme: ai_hardware
+  aliases: ["300308", "中际旭创", "Innolight", "Zhongji Innolight", "Eoptolink"]
+"600118":
+  market: cn
+  name: 中国卫星
+  theme: aerospace_and_satellite
+  aliases: ["600118", "中国卫星", "China Spacesat"]
+"601698":
+  market: cn
+  name: 中国卫通
+  theme: aerospace_and_satellite
+  aliases: ["601698", "中国卫通", "China Satcom"]
+"002465":
+  market: cn
+  name: 海格通信
+  theme: aerospace_and_satellite
+  aliases: ["002465", "海格通信", "Haige Communications"]
+"001270":
+  market: cn
+  name: 铖昌科技
+  theme: aerospace_and_satellite
+  aliases: ["001270", "铖昌科技", "Chengchang Technology"]
+"600036":
+  market: cn
+  name: 招商银行
+  theme: financials
+  aliases: ["600036", "招商银行", "招行", "CMB", "China Merchants Bank"]
+"601318":
+  market: cn
+  name: 中国平安
+  theme: financials
+  aliases: ["601318", "中国平安", "平安", "平安保险", "Ping An", "Ping An Insurance"]
+"600030":
+  market: cn
+  name: 中信证券
+  theme: financials
+  aliases: ["600030", "中信证券", "CITIC Securities"]
+"002230":
+  market: cn
+  name: 科大讯飞
+  theme: ai_software
+  aliases: ["002230", "科大讯飞", "讯飞", "iFlytek"]
+"688111":
+  market: cn
+  name: 金山办公
+  theme: ai_software
+  aliases: ["688111", "金山办公", "WPS", "Kingsoft Office"]
+"600845":
+  market: cn
+  name: 宝信软件
+  theme: ai_software
+  aliases: ["600845", "宝信软件", "Baosight Software"]
+"300750":
+  market: cn
+  name: 宁德时代
+  theme: power_and_compute
+  aliases: ["300750", "宁德时代", "CATL", "Contemporary Amperex Technology"]
+"600900":
+  market: cn
+  name: 长江电力
+  theme: power_and_compute
+  aliases: ["600900", "长江电力", "CYPC", "China Yangtze Power"]
+
+"0700.HK":
+  market: hk
+  name: 腾讯控股
+  theme: internet_and_ai_platforms
+  aliases: ["0700.HK", "0700", "腾讯", "腾讯控股", "Tencent", "Tencent Holdings"]
+"9988.HK":
+  market: hk
+  name: 阿里巴巴
+  theme: internet_and_ai_platforms
+  aliases: ["9988.HK", "9988", "阿里巴巴", "阿里", "Alibaba", "Alibaba Group"]
+"3690.HK":
+  market: hk
+  name: 美团
+  theme: internet_and_ai_platforms
+  aliases: ["3690.HK", "3690", "美团", "美团点评", "Meituan"]
+"9888.HK":
+  market: hk
+  name: 百度集团
+  theme: internet_and_ai_platforms
+  aliases: ["9888.HK", "9888", "百度", "百度集团", "Baidu", "Baidu Group"]
+"0020.HK":
+  market: hk
+  name: 商汤科技
+  theme: internet_and_ai_platforms
+  aliases: ["0020.HK", "0020", "商汤", "商汤科技", "SenseTime"]
+"1347.HK":
+  market: hk
+  name: 华虹半导体
+  theme: electronics_and_semiconductors
+  aliases: ["1347.HK", "1347", "华虹半导体", "华虹", "Hua Hong Semiconductor"]
+"0992.HK":
+  market: hk
+  name: 联想集团
+  theme: electronics_and_semiconductors
+  aliases: ["0992.HK", "0992", "联想", "联想集团", "Lenovo"]
+"1810.HK":
+  market: hk
+  name: 小米集团
+  theme: electronics_and_semiconductors
+  aliases: ["1810.HK", "1810", "小米", "小米集团", "Xiaomi"]
+"1725.HK":
+  market: hk
+  name: 香港航天科技
+  theme: aerospace_and_satellite
+  aliases: ["1725.HK", "1725", "香港航天科技", "香港航天", "Hong Kong Aerospace Technology"]
+"0005.HK":
+  market: hk
+  name: 汇丰控股
+  theme: financials
+  aliases: ["0005.HK", "0005", "汇丰", "汇丰控股", "HSBC", "HSBC Holdings"]
+"0388.HK":
+  market: hk
+  name: 香港交易所
+  theme: financials
+  aliases: ["0388.HK", "0388", "港交所", "香港交易所", "HKEX", "Hong Kong Exchanges and Clearing"]
+"1299.HK":
+  market: hk
+  name: 友邦保险
+  theme: financials
+  aliases: ["1299.HK", "1299", "友邦", "友邦保险", "AIA", "AIA Group"]

@@ -52,12 +52,15 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
 
         # todo 定义可用的工具列表
     tool_candidates = [
-        {"tool_name": "stock_data", "description": "获取指定股票的历史行情数据"},
+        {"tool_name": "stock_data", "description": "FinanceMCP远程股票数据工具，仅在用户明确要求使用FinanceMCP或本地行情工具不适用时作为兜底"},
+        {"tool_name": "market_data_snapshot", "description": "读取本地历史行情Parquet并生成结构化技术面摘要"},
+        {"tool_name": "realtime_quote", "description": "获取指定股票的实时行情快照"},
         {"tool_name": "company_performance", "description": "获取指定公司的综合表现数据"},
         {"tool_name": "SearchFinancialNews", "description": "根据关键词和时间范围搜索财经资讯内容"},
-        {"tool_name": "hot_news_7x24", "description": "获取7x24小时热门新闻"},
+        {"tool_name": "hot_news_7x24", "description": "获取7x24小时热门新闻（AkShare拉取 + 本地清洗/聚类/去重/情绪/逻辑打标）"},
         {"tool_name": "get_current_time", "description": "获取当前时间工具"},
         {"tool_name": "retrieve_reports", "description": "研报检索工具"},
+        {"tool_name": "retrieve_filings", "description": "财报/公告原文证据检索工具"},
         {"tool_name": "generate_financial_report", "description": "生成公司财务分析报告。**此工具会自动获取所需的所有数据**，包括历史行情、财务指标、新闻资讯等，无需先调用其他工具获取数据。"},
         {"tool_name": "generate_investment_report", "description": "生成股票投资组合报告。**此工具会自动获取所需的所有数据**，包括股票数据、指数数据、财经新闻、热门新闻等，无需先调用其他工具获取数据。"},
         {"tool_name": "generate_markdown_report", "description": "生成其他类型（非公司财务、非投资）分析报告"},
@@ -87,6 +90,8 @@ def plan_node(state: AgentState) -> Dict[str, Any]:
         1. 第一步一定需要调用"get_current_time"工具，用于获取当前时间。
         2. **如果需要生成公司财务分析报告（使用generate_financial_report工具），则调用完"get_current_time"后必须直接调用"generate_financial_report"工具，绝对不允许在中间调用其他任何工具获取数据。**
         3. 因为"generate_financial_report"工具会自动获取所需的所有数据，包括历史行情、财务指标、新闻资讯等，无需先调用其他工具获取数据。
+        4. 如果用户需求涉及“实时股价”、“实时行情”或“盘中价格快照”，必须优先使用"realtime_quote"工具。
+        5. 如果用户需求涉及“历史行情”、“技术指标”、“日线趋势”、本地历史行情 Parquet、均线/RSI/MACD/Bollinger解释，一律使用"market_data_snapshot"工具，不要使用"stock_data"工具。
 
         ## 当前对话上下文
         {summary}
@@ -156,9 +161,13 @@ def execute_node(state: AgentState) -> Dict[str, Any]:
             ## 工具参数定义如下，"required"字段中表示必须的参数：
             {tool_schema}
             
+            ## 输出要求：
+            1. 只返回纯 JSON 对象，不要输出 Markdown 代码块、注释或任何解释性文字。
+            2. 只保留一个顶层字段 "参数"，不要返回 "分析" 字段。
+            3. "参数" 中填写调用该工具所需的所有参数键值对。
+
             ## 回答格式：
             {{
-                "分析": "你的分析过程",
                 "参数": {{
                     "参数1名称": "参数1值",
                     "参数2名称": "参数2值"
@@ -177,7 +186,21 @@ def execute_node(state: AgentState) -> Dict[str, Any]:
         param_analysis = generate_text(prompt_text)
         try:
             import json
-            analysis_result = json.loads(param_analysis)
+            import re
+
+            cleaned = param_analysis.strip()
+            if cleaned.startswith("```"):
+                cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+                cleaned = re.sub(r"\s*```$", "", cleaned)
+
+            try:
+                analysis_result = json.loads(cleaned)
+            except json.JSONDecodeError:
+                match = re.search(r"\{.*\}", cleaned, re.S)
+                if not match:
+                    raise
+                analysis_result = json.loads(match.group(0))
+
             print(f"====={analysis_result}")
             tool_args = analysis_result.get("参数", {})
             

@@ -1,6 +1,8 @@
 __pycache__/
 .idea/
 .venv/
+.DS_Store
+**/.DS_Store
 reports/
 chroma_memory/
 chroma_db/
@@ -8,9 +10,18 @@ data/reports/
 report_template/
 memories/
 node_modules/
+data
+docs
 
-requirements.txt
-config-info.yml
+# FinAgent KB data and generated indexes
+kb/qdrant/
+kb/raw_reports/
+kb/raw_filings/
+kb/raw_encyclopedia/
+kb/raw_glossary/*
+kb/raw_glossary/glossary_template.csv
+kb/.DS_Store
+
 test.py
 test_akshare_connection.py
 test_yfinance.py
@@ -19,7 +30,5 @@ test_memory.py
 test_memory_integration.py
 test_memory_save_strategy.py
 test_report.py
-todo_list.md
 package-lock.json
 package.json
-test_example.md

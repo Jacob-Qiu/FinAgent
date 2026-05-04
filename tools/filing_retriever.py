@@ -1,4 +1,4 @@
-"""Research-report retrieval tool backed by the extension KB."""
+"""Financial-filing retrieval tool backed by the extension KB."""
 
 from __future__ import annotations
 
@@ -15,24 +15,31 @@ from tools.kb_pipeline_provider import get_kb_pipeline
 DEFAULT_CHUNK_ROLES = ["evidence"]
 DEFAULT_MULTI_COMPANY_RESULTS_PER_TICKER = 3
 DEFAULT_LLM_ROUTER_RESULTS_PER_TICKER = 1
+DEFAULT_MAX_CONTENT_CHARS = 3500
 
 
-def retrieve_reports(query: str, n_results: int = 5, filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-    """Retrieve research-report evidence chunks from the Qdrant-backed KB.
+def retrieve_filings(query: str, n_results: int = 5, filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """Retrieve financial-filing evidence chunks from the Qdrant-backed KB.
 
     Args:
         query: User query text.
         n_results: Number of evidence hits to return.
         filters: Optional metadata filters. Supported keys include:
-            ticker, tickers, doc_types, chunk_roles, expand_neighbors,
-            per_ticker_results, enable_entity_router, max_router_tickers.
+            ticker, period_end, report_type, statement_type, chunk_roles, expand_neighbors,
+            max_content_chars.
     """
 
     filters = filters or {}
     explicit_tickers = _normalize_sequence(filters.get("ticker") or filters.get("tickers"))
-    doc_types = _normalize_sequence(filters.get("doc_types") or filters.get("doc_type")) or ["report"]
+    period_end = _clean_optional_string(filters.get("period_end") or filters.get("period"))
+    report_type = _clean_optional_string(filters.get("report_type"))
+    statement_type = _clean_optional_string(filters.get("statement_type"))
     chunk_roles = _normalize_sequence(filters.get("chunk_roles") or filters.get("chunk_role")) or DEFAULT_CHUNK_ROLES
-    expand_neighbors = _normalize_bool(filters.get("expand_neighbors"), default=True)
+    expand_neighbors = _normalize_bool(filters.get("expand_neighbors"), default=False)
+    max_content_chars = _normalize_positive_int(
+        filters.get("max_content_chars"),
+        default=DEFAULT_MAX_CONTENT_CHARS,
+    )
     enable_entity_router = _normalize_bool(filters.get("enable_entity_router"), default=True)
     max_router_tickers = max(
         1,
@@ -41,21 +48,12 @@ def retrieve_reports(query: str, n_results: int = 5, filters: dict[str, Any] | N
             default=min(max(n_results, 1), DEFAULT_LLM_ROUTER_MAX_TICKERS),
         ),
     )
-
-    if explicit_tickers:
-        target_tickers, detection_source = resolve_target_tickers(
-            query=query,
-            explicit_tickers=explicit_tickers,
-            enable_entity_router=False,
-            max_tickers=max_router_tickers,
-        )
-    else:
-        target_tickers, detection_source = resolve_target_tickers(
-            query=query,
-            enable_entity_router=enable_entity_router,
-            max_tickers=max_router_tickers,
-        )
-
+    target_tickers, detection_source = resolve_target_tickers(
+        query=query,
+        explicit_tickers=explicit_tickers or None,
+        enable_entity_router=enable_entity_router and not explicit_tickers,
+        max_tickers=max_router_tickers,
+    )
     default_per_ticker = (
         DEFAULT_LLM_ROUTER_RESULTS_PER_TICKER
         if detection_source == "llm_entity_router"
@@ -71,21 +69,27 @@ def retrieve_reports(query: str, n_results: int = 5, filters: dict[str, Any] | N
         hits = pipeline.search(
             query=query,
             top_k=n_results,
-            doc_types=doc_types,
+            doc_types=["filing"],
             ticker=None,
             chunk_roles=chunk_roles,
+            period_end=period_end,
+            report_type=report_type,
+            statement_type=statement_type,
             expand_neighbors=expand_neighbors,
         )
-        return [_format_hit(hit, retrieval_mode="raw_query") for hit in hits]
+        return [_format_hit(hit, retrieval_mode="raw_query", max_content_chars=max_content_chars) for hit in hits]
 
     if len(target_tickers) == 1:
         ticker = target_tickers[0]
         hits = pipeline.search(
             query=query,
             top_k=n_results,
-            doc_types=doc_types,
+            doc_types=["filing"],
             ticker=ticker,
             chunk_roles=chunk_roles,
+            period_end=period_end,
+            report_type=report_type,
+            statement_type=statement_type,
             expand_neighbors=expand_neighbors,
         )
         if not hits:
@@ -94,6 +98,7 @@ def retrieve_reports(query: str, n_results: int = 5, filters: dict[str, Any] | N
             _format_hit(
                 hit,
                 retrieval_mode="ticker_filter",
+                max_content_chars=max_content_chars,
                 matched_ticker=ticker,
                 detected_tickers=target_tickers,
                 detection_source=detection_source,
@@ -106,9 +111,12 @@ def retrieve_reports(query: str, n_results: int = 5, filters: dict[str, Any] | N
         hits = pipeline.search(
             query=query,
             top_k=per_ticker_results,
-            doc_types=doc_types,
+            doc_types=["filing"],
             ticker=ticker,
             chunk_roles=chunk_roles,
+            period_end=period_end,
+            report_type=report_type,
+            statement_type=statement_type,
             expand_neighbors=expand_neighbors,
         )
         if not hits:
@@ -126,6 +134,7 @@ def retrieve_reports(query: str, n_results: int = 5, filters: dict[str, Any] | N
             _format_hit(
                 hit,
                 retrieval_mode="multi_ticker_filter",
+                max_content_chars=max_content_chars,
                 matched_ticker=ticker,
                 detected_tickers=target_tickers,
                 detection_source=detection_source,
@@ -138,6 +147,7 @@ def retrieve_reports(query: str, n_results: int = 5, filters: dict[str, Any] | N
 def _format_hit(
     hit,
     retrieval_mode: str,
+    max_content_chars: int | None,
     matched_ticker: str | None = None,
     detected_tickers: list[str] | None = None,
     detection_source: str | None = None,
@@ -150,8 +160,15 @@ def _format_hit(
         metadata["detected_tickers"] = detected_tickers
     if detection_source:
         metadata["ticker_detection_source"] = detection_source
+    content, was_truncated = _truncate_content(hit.content, max_content_chars)
+    metadata["retrieval_status"] = "ok"
+    metadata["content_truncated"] = was_truncated
+    metadata["original_content_chars"] = len(hit.content)
+    metadata["returned_content_chars"] = len(content)
+    if max_content_chars is not None:
+        metadata["max_content_chars"] = max_content_chars
     return {
-        "content": hit.content,
+        "content": content,
         "metadata": metadata,
         "score": hit.score,
     }
@@ -167,7 +184,7 @@ def _empty_ticker_result(
     name = company_display_name(ticker)
     detected_tickers = detected_tickers or [ticker]
     return {
-        "content": f"本地研报库未检索到 {ticker}（{name}）的相关研报证据。原始问题：{query}",
+        "content": f"本地财报/公告库未检索到 {ticker}（{name}）的相关证据。原始问题：{query}",
         "metadata": {
             "ticker": ticker,
             "source_title": name,
@@ -179,6 +196,13 @@ def _empty_ticker_result(
         },
         "score": 0.0,
     }
+
+
+def _clean_optional_string(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _normalize_sequence(value: Any) -> list[str]:
@@ -213,3 +237,20 @@ def _normalize_int(value: Any, default: int) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _normalize_positive_int(value: Any, default: int) -> int | None:
+    number = _normalize_int(value, default)
+    return number if number > 0 else None
+
+
+def _truncate_content(content: str, max_chars: int | None) -> tuple[str, bool]:
+    content = str(content)
+    if max_chars is None or len(content) <= max_chars:
+        return content, False
+
+    marker = f"\n\n[内容已截断，原始 {len(content)} 字符。可通过 filters.max_content_chars 调整上限。]"
+    if len(marker) >= max_chars:
+        return marker[:max_chars], True
+    keep_chars = max(0, max_chars - len(marker))
+    return content[:keep_chars].rstrip() + marker, True

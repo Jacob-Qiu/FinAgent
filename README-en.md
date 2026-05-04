@@ -32,7 +32,6 @@ FinAgent/
 │ ├── mcp.py # MCP server and client configuration
 │ ├── memory.py # Memory module
 │ ├── nodes.py # LangGraph nodes
-│ ├── rag.py # RAG
 │ ├── utils.py # other
 │
 ├── llm/ # LLM
