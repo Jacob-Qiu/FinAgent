@@ -136,3 +136,6 @@ npx -y finance-mcp-http
 # 2. 在另一个终端启动 FinAgent
 uv run python agent.py
 ```
+
+### 7. 测试指引
+更多测试使用指引请参考[使用指引](FinAgent_User_Instruction.md)
