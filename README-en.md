@@ -146,4 +146,4 @@ uv run python agent.py
 ```
 
 ### 7. Testing Guide
-For more testing instructions, please refer to the [User Guide](FinAgent_User_Instruction.md)
+For more testing instructions, please refer to the [User Guide](FinAgent_User_Instructions.md)

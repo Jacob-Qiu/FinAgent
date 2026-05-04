@@ -138,4 +138,4 @@ uv run python agent.py
 ```
 
 ### 7. 测试指引
-更多测试使用指引请参考[使用指引](FinAgent_User_Instruction.md)
+更多测试使用指引请参考[使用指引](FinAgent_User_Instructions.md)
